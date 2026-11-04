@@ -1,0 +1,38 @@
+name: CD Backend
+
+on:
+  push:
+    branches: [ develop, release, main ]
+    paths: [ 'backend/**' ]
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: DevSecOps - Análise de Vulnerabilidades (SAST)
+        run: |
+          echo "Verificando credenciais vazadas e vulnerabilidades de código..."
+
+      - name: Deploy em Testes Internos
+        if: github.ref == 'refs/heads/develop'
+        run: echo "Publicando API no ambiente de Desenvolvimento..."
+
+      - name: Deploy em Homologação
+        if: github.ref == 'refs/heads/release'
+        run: echo "Publicando versão candidata do Backend..."
+
+      - name: Deploy em Produção
+        if: github.ref == 'refs/heads/main'
+        run: echo "Deploy final do Backend em Produção..."

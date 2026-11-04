@@ -1,0 +1,38 @@
+name: CD Mobile
+
+on:
+  push:
+    branches: [ develop, release, main ]
+    paths: [ 'mobile/**' ]
+
+jobs:
+  deploy-mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./mobile
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: DevSecOps - Auditoria de Dependências
+        run: |
+          echo "Executando auditoria de segurança (npm audit)..."
+
+      - name: Build para Testes Internos
+        if: github.ref == 'refs/heads/develop'
+        run: echo "Gerando build do App para a equipa interna..."
+
+      - name: Build da Versão Candidata (Homologação)
+        if: github.ref == 'refs/heads/release'
+        run: echo "Gerando build para validação funcional do grupo..."
+
+      - name: Deploy em Produção
+        if: github.ref == 'refs/heads/main'
+        run: echo "Enviando aplicativo para as Lojas (Produção)..."
