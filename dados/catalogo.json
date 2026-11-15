@@ -1,0 +1,272 @@
+{
+  "dimensoes": [
+    "cultura",
+    "historia",
+    "gastronomia",
+    "natureza",
+    "compras",
+    "vida_noturna"
+  ],
+  "origem": {
+    "id": "origem:usuario",
+    "nome": "Ponto de partida - São Paulo",
+    "lat": -23.5504,
+    "lon": -46.6339,
+    "duracao_min": 0
+  },
+  "atracoes": [
+    {
+      "id": "osm:node:2135983920",
+      "nome": "Marco zero da cidade de São Paulo",
+      "categoria": "atracao",
+      "lat": -23.5503953,
+      "lon": -46.6339471,
+      "localizacao_tipo": "node",
+      "distancia_origem_km_aprox": 0.005,
+      "vetor": {
+        "cultura": 0.65,
+        "historia": 0.45,
+        "gastronomia": 0.15,
+        "natureza": 0.35,
+        "compras": 0.15,
+        "vida_noturna": 0.1
+      },
+      "duracao_min": 50,
+      "url_osm": "https://www.openstreetmap.org/node/2135983920",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:node:2157624155",
+      "nome": "Glória Imortal aos Fundadores de São Paulo",
+      "categoria": "historia",
+      "lat": -23.5481348,
+      "lon": -46.6330584,
+      "localizacao_tipo": "node",
+      "distancia_origem_km_aprox": 0.266,
+      "vetor": {
+        "cultura": 0.8,
+        "historia": 1,
+        "gastronomia": 0.05,
+        "natureza": 0.05,
+        "compras": 0.05,
+        "vida_noturna": 0.05
+      },
+      "duracao_min": 35,
+      "url_osm": "https://www.openstreetmap.org/node/2157624155",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:way:75531453",
+      "nome": "Secretaria da Justiça e da Defesa da Cidadania",
+      "categoria": "museu",
+      "localizacao_tipo": "centro_geometrico_way",
+      "lat": -23.548575485714284,
+      "lon": -46.632903042857144,
+      "distancia_origem_km_aprox": 0.227,
+      "vetor": {
+        "cultura": 1,
+        "historia": 0.85,
+        "gastronomia": 0.05,
+        "natureza": 0.05,
+        "compras": 0.05,
+        "vida_noturna": 0.05
+      },
+      "duracao_min": 70,
+      "url_osm": "https://www.openstreetmap.org/way/75531453",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:way:255886662",
+      "nome": "Praça Doutor João Mendes",
+      "categoria": "parque",
+      "localizacao_tipo": "centro_geometrico_way",
+      "lat": -23.552017263636365,
+      "lon": -46.63476174545454,
+      "distancia_origem_km_aprox": 0.2,
+      "vetor": {
+        "cultura": 0.2,
+        "historia": 0.1,
+        "gastronomia": 0.05,
+        "natureza": 1,
+        "compras": 0.05,
+        "vida_noturna": 0.05
+      },
+      "duracao_min": 50,
+      "url_osm": "https://www.openstreetmap.org/way/255886662",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:node:4897257221",
+      "nome": "Estátua de São Paulo Apóstolo",
+      "categoria": "atracao",
+      "lat": -23.5501346,
+      "lon": -46.6338039,
+      "localizacao_tipo": "node",
+      "distancia_origem_km_aprox": 0.031,
+      "vetor": {
+        "cultura": 0.65,
+        "historia": 0.45,
+        "gastronomia": 0.15,
+        "natureza": 0.35,
+        "compras": 0.15,
+        "vida_noturna": 0.1
+      },
+      "duracao_min": 50,
+      "url_osm": "https://www.openstreetmap.org/node/4897257221",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:node:10580168308",
+      "nome": "Pelorinho",
+      "categoria": "historia",
+      "lat": -23.5528384,
+      "lon": -46.634542,
+      "localizacao_tipo": "node",
+      "distancia_origem_km_aprox": 0.279,
+      "vetor": {
+        "cultura": 0.8,
+        "historia": 1,
+        "gastronomia": 0.05,
+        "natureza": 0.05,
+        "compras": 0.05,
+        "vida_noturna": 0.05
+      },
+      "duracao_min": 35,
+      "url_osm": "https://www.openstreetmap.org/node/10580168308",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:way:205784137",
+      "nome": "Casa da Imagem",
+      "categoria": "museu",
+      "localizacao_tipo": "centro_geometrico_way",
+      "lat": -23.5483595375,
+      "lon": -46.632198875,
+      "distancia_origem_km_aprox": 0.286,
+      "vetor": {
+        "cultura": 1,
+        "historia": 0.85,
+        "gastronomia": 0.05,
+        "natureza": 0.05,
+        "compras": 0.05,
+        "vida_noturna": 0.05
+      },
+      "duracao_min": 70,
+      "url_osm": "https://www.openstreetmap.org/way/205784137",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:way:49723146",
+      "nome": "Praça Clóvis Beviláqua",
+      "categoria": "parque",
+      "localizacao_tipo": "centro_geometrico_way",
+      "lat": -23.550849935714286,
+      "lon": -46.631846221428574,
+      "distancia_origem_km_aprox": 0.215,
+      "vetor": {
+        "cultura": 0.2,
+        "historia": 0.1,
+        "gastronomia": 0.05,
+        "natureza": 1,
+        "compras": 0.05,
+        "vida_noturna": 0.05
+      },
+      "duracao_min": 50,
+      "url_osm": "https://www.openstreetmap.org/way/49723146",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:node:6579434757",
+      "nome": "Totem da Sé",
+      "categoria": "atracao",
+      "lat": -23.5508384,
+      "lon": -46.6337875,
+      "localizacao_tipo": "node",
+      "distancia_origem_km_aprox": 0.05,
+      "vetor": {
+        "cultura": 0.65,
+        "historia": 0.45,
+        "gastronomia": 0.15,
+        "natureza": 0.35,
+        "compras": 0.15,
+        "vida_noturna": 0.1
+      },
+      "duracao_min": 50,
+      "url_osm": "https://www.openstreetmap.org/node/6579434757",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:node:5013011023",
+      "nome": "O Beijo",
+      "categoria": "historia",
+      "lat": -23.5498098,
+      "lon": -46.6366685,
+      "localizacao_tipo": "node",
+      "distancia_origem_km_aprox": 0.29,
+      "vetor": {
+        "cultura": 0.8,
+        "historia": 1,
+        "gastronomia": 0.05,
+        "natureza": 0.05,
+        "compras": 0.05,
+        "vida_noturna": 0.05
+      },
+      "duracao_min": 35,
+      "url_osm": "https://www.openstreetmap.org/node/5013011023",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:way:205784140",
+      "nome": "Colégio José de Anchieta",
+      "categoria": "museu",
+      "localizacao_tipo": "centro_geometrico_way",
+      "lat": -23.548028455,
+      "lon": -46.63264706,
+      "distancia_origem_km_aprox": 0.293,
+      "vetor": {
+        "cultura": 1,
+        "historia": 0.85,
+        "gastronomia": 0.05,
+        "natureza": 0.05,
+        "compras": 0.05,
+        "vida_noturna": 0.05
+      },
+      "duracao_min": 70,
+      "url_osm": "https://www.openstreetmap.org/way/205784140",
+      "origem_dado": "OpenStreetMap"
+    },
+    {
+      "id": "osm:way:255886663",
+      "nome": "Praça Doutor João Mendes",
+      "categoria": "parque",
+      "localizacao_tipo": "centro_geometrico_way",
+      "lat": -23.552209705555555,
+      "lon": -46.634997355555555,
+      "distancia_origem_km_aprox": 0.23,
+      "vetor": {
+        "cultura": 0.2,
+        "historia": 0.1,
+        "gastronomia": 0.05,
+        "natureza": 1,
+        "compras": 0.05,
+        "vida_noturna": 0.05
+      },
+      "duracao_min": 50,
+      "url_osm": "https://www.openstreetmap.org/way/255886663",
+      "origem_dado": "OpenStreetMap"
+    }
+  ],
+  "metadados": {
+    "fonte": "OpenStreetMap",
+    "via": "API principal OSM /api/0.6/map",
+    "url_fonte": "https://api.openstreetmap.org/api/0.6/map",
+    "cidade": "São Paulo",
+    "coletado_em_utc": "2026-11-09T14:31:47.959377+00:00",
+    "licenca": "ODbL 1.0",
+    "atribuicao": "© OpenStreetMap contributors",
+    "url_licenca": "https://www.openstreetmap.org/copyright",
+    "localizacoes": "obtidas de objetos OSM; way usa média das coordenadas de seus vértices, não entrada",
+    "duracoes": "estimativas demonstrativas por categoria; não provenientes do OSM",
+    "vetores": "heurísticos por categoria; não são embeddings de IA"
+  }
+}
