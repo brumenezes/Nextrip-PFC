@@ -1,7 +1,14 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, func, cast
+from geoalchemy2 import Geometry
+from app.services.gerador_roteiros import selecionar_pontos_interesse
 from sqlalchemy.orm import Session
+
+from app.services.calculadora_deslocamentos import (
+    calcular_distancia_metros,
+    estimar_tempo_deslocamento
+)
 
 from app.database import get_db
 from app.core.dependencies import obter_usuario_atual
@@ -72,12 +79,35 @@ def gerar_roteiro(
         )
 
     # 2. Seleciona as atrações
+
+    # Consulta as coordenadas geográficas das atrações
+    coordenadas_resultado = db.execute(
+        select(
+            PontoDeInteresse.id,
+            func.ST_Y(
+                cast(PontoDeInteresse.localizacao, Geometry)
+            ).label("latitude"),
+            func.ST_X(
+                cast(PontoDeInteresse.localizacao, Geometry)
+            ).label("longitude")
+        )
+        .where(PontoDeInteresse.localizacao.is_not(None))
+    ).all()
+
+    # Organiza as coordenadas em um dicionário
+    coordenadas = {
+        linha.id: (linha.latitude, linha.longitude)
+        for linha in coordenadas_resultado
+    }
+    
     selecionados, custo_total, tempo_total = selecionar_pontos_interesse(
         pontos=list(pontos),
         orcamento_maximo=dados.orcamento_maximo,
         tempo_disponivel_minutos=dados.tempo_disponivel_minutos,
-        interesses=interesses_usuario
+        interesses=interesses_usuario,
+        coordenadas=coordenadas
     )
+
 
     if not selecionados:
         raise HTTPException(
@@ -103,14 +133,38 @@ def gerar_roteiro(
     db.add(novo_roteiro)
     db.add(novo_dia)
 
+    
     # 5. Adiciona as atrações selecionadas
     atividades_resposta = []
+    ponto_anterior = None
 
     for ordem, ponto in enumerate(selecionados, start=1):
+        distancia_metros = 0.0
+        tempo_deslocamento = 0
+
+        # Calcula o deslocamento a partir da atração anterior
+        if ponto_anterior is not None:
+            origem = coordenadas.get(ponto_anterior.id)
+            destino = coordenadas.get(ponto.id)
+
+            if origem is not None and destino is not None:
+                distancia_metros = calcular_distancia_metros(
+                    origem[0],
+                    origem[1],
+                    destino[0],
+                    destino[1]
+                )
+
+                tempo_deslocamento = estimar_tempo_deslocamento(
+                    distancia_metros
+                )
+
         visita = VisitaAtividade(
             roteiro_dia=novo_dia,
             poi_id=ponto.id,
             ordem_sequencia=ordem,
+            tempo_deslocamento_previsto=tempo_deslocamento,
+            distancia_deslocamento_metros=distancia_metros,
             status="Planejado"
         )
 
@@ -127,6 +181,9 @@ def gerar_roteiro(
             )
         )
 
+        ponto_anterior = ponto
+
+
     # 6. Salva todos os registros no banco
     try:
         db.commit()
@@ -138,12 +195,22 @@ def gerar_roteiro(
             detail="Erro ao salvar o roteiro no banco de dados"
         )
 
+ 
     # 7. Retorna o roteiro gerado
+    tempo_visitas = sum(
+        ponto.duracao_minutos
+        for ponto in selecionados
+    )
+
+    tempo_deslocamentos = tempo_total - tempo_visitas
+
     return GerarRoteiroResponse(
         roteiro_id=novo_roteiro.id,
         data_visita=dados.data_visita,
         tempo_disponivel_minutos=dados.tempo_disponivel_minutos,
-        tempo_total_visitas=tempo_total,
+        tempo_total_visitas=tempo_visitas,
+        tempo_total_deslocamentos=tempo_deslocamentos,
+        tempo_total_roteiro=tempo_total,
         orcamento_maximo=dados.orcamento_maximo,
         custo_total_estimado=custo_total,
         atividades=atividades_resposta
@@ -226,6 +293,7 @@ def consultar_roteiro(
             if ponto is None:
                 continue
 
+            
             atividades_resposta.append(
                 AtividadeRoteiroResponse(
                     poi_id=ponto.id,
@@ -233,7 +301,13 @@ def consultar_roteiro(
                     categoria=ponto.categoria,
                     ordem_sequencia=visita.ordem_sequencia,
                     preco_estimado=ponto.preco_estimado or 0.0,
-                    duracao_minutos=ponto.duracao_minutos or 0
+                    duracao_minutos=ponto.duracao_minutos or 0,
+                    tempo_deslocamento_previsto=(
+                        visita.tempo_deslocamento_previsto or 0
+                    ),
+                    distancia_deslocamento_metros=(
+                        visita.distancia_deslocamento_metros or 0.0
+                    )
                 )
             )
 

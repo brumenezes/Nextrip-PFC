@@ -28,6 +28,8 @@ class AtividadeRoteiroResponse(BaseModel):
     ordem_sequencia: int
     preco_estimado: float
     duracao_minutos: int
+    tempo_deslocamento_previsto: int = 0
+    distancia_deslocamento_metros: float = 0.0
 
 
 # Resposta da geração do roteiro
@@ -36,13 +38,12 @@ class GerarRoteiroResponse(BaseModel):
 
     roteiro_id: UUID
     data_visita: date
-
     tempo_disponivel_minutos: int
     tempo_total_visitas: int
-
     orcamento_maximo: float
     custo_total_estimado: float
-
+    tempo_total_deslocamentos: int = 0
+    tempo_total_roteiro: int = 0
     atividades: list[AtividadeRoteiroResponse]
 
 

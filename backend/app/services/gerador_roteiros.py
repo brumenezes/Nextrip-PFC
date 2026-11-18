@@ -1,27 +1,33 @@
+from uuid import UUID
 
 from app.models.domain_models import PontoDeInteresse
+from app.services.calculadora_deslocamentos import (
+    calcular_distancia_metros,
+    estimar_tempo_deslocamento
+)
 
 
 def selecionar_pontos_interesse(
     pontos: list[PontoDeInteresse],
     orcamento_maximo: float,
     tempo_disponivel_minutos: int,
-    interesses: list[str] | None = None
+    interesses: list[str] | None = None,
+    coordenadas: dict[UUID, tuple[float, float]] | None = None
 ) -> tuple[list[PontoDeInteresse], float, int]:
     """
     Seleciona atrações considerando:
     - interesses do usuário
     - avaliações dos pontos turísticos
     - orçamento máximo
-    - tempo disponível
+    - duração das visitas
+    - tempo estimado de deslocamento
 
     Retorna:
     - atrações selecionadas
     - custo total estimado
-    - tempo total de visitas
+    - tempo total (visitas + deslocamentos)
     """
 
-    # 1. Filtra atrações com dados válidos
     pontos_validos = [
         ponto
         for ponto in pontos
@@ -31,24 +37,21 @@ def selecionar_pontos_interesse(
         and ponto.duracao_minutos > 0
     ]
 
-    # 2. Normaliza os interesses do usuário
     interesses_normalizados = {
         interesse.strip().casefold()
         for interesse in (interesses or [])
         if interesse.strip()
     }
 
-    # 3. Verifica se a categoria corresponde
-    # aos interesses cadastrados
     def corresponde_interesse(ponto: PontoDeInteresse) -> bool:
         if not ponto.categoria:
             return False
 
-        categoria = ponto.categoria.strip().casefold()
+        return (
+            ponto.categoria.strip().casefold()
+            in interesses_normalizados
+        )
 
-        return categoria in interesses_normalizados
-
-    # 4. Prioriza interesses e depois avaliações
     pontos_ordenados = sorted(
         pontos_validos,
         key=lambda ponto: (
@@ -58,14 +61,39 @@ def selecionar_pontos_interesse(
         reverse=True
     )
 
-    # 5. Seleciona atrações respeitando os limites
     selecionados = []
     custo_total = 0.0
     tempo_total = 0
 
     for ponto in pontos_ordenados:
+        tempo_deslocamento = 0
+
+        # Calcula deslocamento a partir da última atração
+        if selecionados and coordenadas:
+            ponto_anterior = selecionados[-1]
+
+            origem = coordenadas.get(ponto_anterior.id)
+            destino = coordenadas.get(ponto.id)
+
+            if origem is not None and destino is not None:
+                distancia = calcular_distancia_metros(
+                    origem[0],
+                    origem[1],
+                    destino[0],
+                    destino[1]
+                )
+
+                tempo_deslocamento = estimar_tempo_deslocamento(
+                    distancia
+                )
+
         novo_custo = custo_total + ponto.preco_estimado
-        novo_tempo = tempo_total + ponto.duracao_minutos
+
+        novo_tempo = (
+            tempo_total
+            + tempo_deslocamento
+            + ponto.duracao_minutos
+        )
 
         if (
             novo_custo <= orcamento_maximo
