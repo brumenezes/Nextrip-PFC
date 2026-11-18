@@ -6,6 +6,7 @@ from app.database import get_db
 from app.routers.usuarios import router as usuarios_router
 from app.routers.preferencias import router as preferencias_router
 from app.routers.auth import router as auth_router
+from app.routers.pontos_interesse import router as pontos_interesse_router
 
 # Criação da aplicação FastAPI
 app = FastAPI(
@@ -19,6 +20,8 @@ app.include_router(auth_router)
 # Registro das rotas de usuários
 app.include_router(usuarios_router)
 app.include_router(preferencias_router)
+app.include_router(auth_router)
+app.include_router(pontos_interesse_router)
 
 # Endpoint inicial
 @app.get("/")
