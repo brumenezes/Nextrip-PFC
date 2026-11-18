@@ -7,11 +7,13 @@ from app.database import get_db
 from app.core.dependencies import obter_usuario_atual
 from app.models.domain_models import (
     Usuario,
+    Preferencias,
     PontoDeInteresse,
     Roteiro,
     RoteiroDia,
     VisitaAtividade
 )
+
 from app.schemas.roteiro import (
     GerarRoteiroRequest,
     GerarRoteiroResponse,
@@ -43,6 +45,20 @@ def gerar_roteiro(
     Gera e salva um roteiro turístico de um dia,
     respeitando orçamento e tempo disponível.
     """
+    # Consulta as preferências do usuário autenticado
+    preferencias = db.scalar(
+        select(Preferencias).where(
+            Preferencias.usuario_id == usuario_atual.id
+        )
+    )
+
+    # Se não houver preferências, utiliza uma lista vazia
+    interesses_usuario = (
+        preferencias.interesses or []
+        if preferencias is not None
+        else []
+    )
+
 
     # 1. Consulta os pontos turísticos cadastrados
     pontos = db.scalars(
@@ -59,7 +75,8 @@ def gerar_roteiro(
     selecionados, custo_total, tempo_total = selecionar_pontos_interesse(
         pontos=list(pontos),
         orcamento_maximo=dados.orcamento_maximo,
-        tempo_disponivel_minutos=dados.tempo_disponivel_minutos
+        tempo_disponivel_minutos=dados.tempo_disponivel_minutos,
+        interesses=interesses_usuario
     )
 
     if not selecionados:

@@ -78,8 +78,10 @@ def cadastrar_preferencias(
     # Cria as preferências
     novas_preferencias = Preferencias(
         usuario_id=usuario_id,
-        orcamento_maximo=dados.orcamento_maximo
+        orcamento_maximo=dados.orcamento_maximo,
+        interesses=dados.interesses
     )
+
 
     db.add(novas_preferencias)
     db.commit()
@@ -150,8 +152,11 @@ def atualizar_preferencias(
             detail="Preferências não encontradas"
         )
 
-    # Atualiza o orçamento
+    
+    # Atualiza o orçamento e os interesses
     preferencias.orcamento_maximo = dados.orcamento_maximo
+    preferencias.interesses = dados.interesses
+
 
     db.commit()
     db.refresh(preferencias)
