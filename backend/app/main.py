@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.routers.usuarios import router as usuarios_router
 from app.routers.preferencias import router as preferencias_router
+from app.routers.auth import router as auth_router
 
 # Criação da aplicação FastAPI
 app = FastAPI(
@@ -12,6 +13,8 @@ app = FastAPI(
     description="API para geração de roteiros turísticos personalizados",
     version="0.1.0"
 )
+
+app.include_router(auth_router)
 
 # Registro das rotas de usuários
 app.include_router(usuarios_router)
