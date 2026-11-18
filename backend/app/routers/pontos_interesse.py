@@ -1,4 +1,3 @@
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -38,7 +37,6 @@ def converter_poi_para_resposta(poi, latitude, longitude):
         google_place_id=poi.google_place_id
     )
 
-
 # ==========================================
 # POST - CADASTRAR PONTO DE INTERESSE
 # ==========================================
@@ -52,8 +50,46 @@ def cadastrar_ponto_interesse(
     dados: PontoInteresseCreate,
     db: Session = Depends(get_db)
 ):
+    # ======================================
+    # 1. VERIFICAR SE O PONTO JÁ EXISTE
+    # ======================================
+
+    ponto_existente = db.scalar(
+        select(PontoDeInteresse).where(
+            func.lower(func.trim(PontoDeInteresse.nome))
+            == dados.nome.strip().lower(),
+
+            func.ST_DWithin(
+                PontoDeInteresse.localizacao,
+                func.ST_SetSRID(
+                    func.ST_MakePoint(
+                        dados.longitude,
+                        dados.latitude
+                    ),
+                    4326
+                ).cast(Geometry).cast(
+                    PontoDeInteresse.localizacao.type
+                ),
+                10
+            )
+        )
+    )
+
+    if ponto_existente is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Este ponto de interesse já está "
+                "cadastrado no sistema"
+            )
+        )
+
+    # ======================================
+    # 2. CADASTRAR NOVO PONTO
+    # ======================================
+
     novo_poi = PontoDeInteresse(
-        nome=dados.nome,
+        nome=dados.nome.strip(),
         categoria=dados.categoria,
         localizacao=func.ST_SetSRID(
             func.ST_MakePoint(
@@ -73,20 +109,27 @@ def cadastrar_ponto_interesse(
     db.commit()
     db.refresh(novo_poi)
 
-    
+    # ======================================
+    # 3. CONSULTAR COORDENADAS
+    # ======================================
+
     coordenadas = db.execute(
         select(
-            func.ST_Y(cast(novo_poi.localizacao, Geometry)),
-            func.ST_X(cast(novo_poi.localizacao, Geometry))
+            func.ST_Y(
+                cast(novo_poi.localizacao, Geometry)
+            ),
+            func.ST_X(
+                cast(novo_poi.localizacao, Geometry)
+            )
         )
     ).one()
-
 
     return converter_poi_para_resposta(
         novo_poi,
         coordenadas[0],
         coordenadas[1]
     )
+
 
 
 # ==========================================

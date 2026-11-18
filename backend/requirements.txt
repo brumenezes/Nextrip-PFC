@@ -28,3 +28,4 @@ pycparser==3.12
 cryptography==50.0.2
 PyJWT==2.15.1
 python-dotenv==1.2.4
+shapely==2.2.0
