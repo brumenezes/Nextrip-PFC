@@ -11,12 +11,33 @@ from app.schemas.preferencias import (
     PreferenciasCreate,
     PreferenciasResponse
 )
+from app.core.dependencies import obter_usuario_atual
+
 
 router = APIRouter(
     prefix="/usuarios",
     tags=["Preferências"]
 )
 
+
+def verificar_permissao(
+    usuario_id: UUID,
+    usuario_atual: Usuario
+):
+    """
+    Verifica se o usuário autenticado tem permissão
+    para acessar as preferências solicitadas.
+    """
+    if usuario_atual.id != usuario_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para acessar estas preferências"
+        )
+
+
+# ==========================================
+# POST - CADASTRAR PREFERÊNCIAS
+# ==========================================
 
 @router.post(
     "/{usuario_id}/preferencias",
@@ -26,8 +47,12 @@ router = APIRouter(
 def cadastrar_preferencias(
     usuario_id: UUID,
     dados: PreferenciasCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(obter_usuario_atual)
 ):
+    # Verifica se o usuário pode acessar essas preferências
+    verificar_permissao(usuario_id, usuario_atual)
+
     # Verifica se o usuário existe
     usuario = db.get(Usuario, usuario_id)
 
@@ -63,14 +88,22 @@ def cadastrar_preferencias(
     return novas_preferencias
 
 
+# ==========================================
+# GET - CONSULTAR PREFERÊNCIAS
+# ==========================================
+
 @router.get(
     "/{usuario_id}/preferencias",
     response_model=PreferenciasResponse
 )
 def consultar_preferencias(
     usuario_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(obter_usuario_atual)
 ):
+    # Verifica se o usuário pode acessar essas preferências
+    verificar_permissao(usuario_id, usuario_atual)
+
     # Busca as preferências do usuário
     preferencias = db.scalar(
         select(Preferencias).where(
@@ -87,6 +120,10 @@ def consultar_preferencias(
     return preferencias
 
 
+# ==========================================
+# PUT - ATUALIZAR PREFERÊNCIAS
+# ==========================================
+
 @router.put(
     "/{usuario_id}/preferencias",
     response_model=PreferenciasResponse
@@ -94,8 +131,12 @@ def consultar_preferencias(
 def atualizar_preferencias(
     usuario_id: UUID,
     dados: PreferenciasCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(obter_usuario_atual)
 ):
+    # Verifica se o usuário pode acessar essas preferências
+    verificar_permissao(usuario_id, usuario_atual)
+
     # Busca as preferências existentes
     preferencias = db.scalar(
         select(Preferencias).where(
@@ -116,4 +157,3 @@ def atualizar_preferencias(
     db.refresh(preferencias)
 
     return preferencias
-
