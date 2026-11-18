@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers.usuarios import router as usuarios_router
+from app.routers.preferencias import router as preferencias_router
 
 # Criação da aplicação FastAPI
 app = FastAPI(
@@ -14,6 +15,7 @@ app = FastAPI(
 
 # Registro das rotas de usuários
 app.include_router(usuarios_router)
+app.include_router(preferencias_router)
 
 # Endpoint inicial
 @app.get("/")
