@@ -1,9 +1,9 @@
-from fastapi import FastAPI
-from fastapi import Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.routers.usuarios import router as usuarios_router
 
 # Criação da aplicação FastAPI
 app = FastAPI(
@@ -12,6 +12,8 @@ app = FastAPI(
     version="0.1.0"
 )
 
+# Registro das rotas de usuários
+app.include_router(usuarios_router)
 
 # Endpoint inicial
 @app.get("/")
