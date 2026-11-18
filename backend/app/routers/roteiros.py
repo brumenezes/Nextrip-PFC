@@ -1,4 +1,4 @@
-
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,7 +15,10 @@ from app.models.domain_models import (
 from app.schemas.roteiro import (
     GerarRoteiroRequest,
     GerarRoteiroResponse,
-    AtividadeRoteiroResponse
+    AtividadeRoteiroResponse,
+    RoteiroResumoResponse,
+    RoteiroDiaResponse,
+    RoteiroDetalhadoResponse
 )
 from app.services.gerador_roteiros import selecionar_pontos_interesse
 
@@ -128,3 +131,108 @@ def gerar_roteiro(
         custo_total_estimado=custo_total,
         atividades=atividades_resposta
     )
+
+
+# ==========================================
+# GET - LISTAR ROTEIROS DO USUÁRIO
+# ==========================================
+
+@router.get(
+    "",
+    response_model=list[RoteiroResumoResponse]
+)
+def listar_roteiros(
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(obter_usuario_atual)
+):
+    """
+    Lista os roteiros do usuário autenticado.
+    """
+
+    roteiros = db.scalars(
+        select(Roteiro)
+        .where(Roteiro.usuario_id == usuario_atual.id)
+        .order_by(Roteiro.data_inicio.desc())
+    ).all()
+
+    return roteiros
+
+
+# ==========================================
+# GET - CONSULTAR ROTEIRO POR ID
+# ==========================================
+
+@router.get(
+    "/{roteiro_id}",
+    response_model=RoteiroDetalhadoResponse
+)
+def consultar_roteiro(
+    roteiro_id: UUID,
+    db: Session = Depends(get_db),
+    usuario_atual: Usuario = Depends(obter_usuario_atual)
+):
+    """
+    Consulta um roteiro específico, incluindo
+    seus dias e pontos turísticos.
+    """
+
+    # Busca somente roteiros pertencentes ao usuário
+    roteiro = db.scalar(
+        select(Roteiro).where(
+            Roteiro.id == roteiro_id,
+            Roteiro.usuario_id == usuario_atual.id
+        )
+    )
+
+    if roteiro is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Roteiro não encontrado"
+        )
+
+    dias_resposta = []
+
+    # Percorre os dias do roteiro
+    for dia in sorted(
+        roteiro.dias,
+        key=lambda item: item.data_referencia
+    ):
+        atividades_resposta = []
+
+        # Percorre as atividades na ordem de visita
+        for visita in sorted(
+            dia.atividades,
+            key=lambda item: item.ordem_sequencia
+        ):
+            ponto = db.get(PontoDeInteresse, visita.poi_id)
+
+            if ponto is None:
+                continue
+
+            atividades_resposta.append(
+                AtividadeRoteiroResponse(
+                    poi_id=ponto.id,
+                    nome=ponto.nome,
+                    categoria=ponto.categoria,
+                    ordem_sequencia=visita.ordem_sequencia,
+                    preco_estimado=ponto.preco_estimado or 0.0,
+                    duracao_minutos=ponto.duracao_minutos or 0
+                )
+            )
+
+        dias_resposta.append(
+            RoteiroDiaResponse(
+                data_referencia=dia.data_referencia,
+                tempo_disponivel_minutos=dia.tempo_disponivel_minutos,
+                atividades=atividades_resposta
+            )
+        )
+
+    return RoteiroDetalhadoResponse(
+        id=roteiro.id,
+        data_inicio=roteiro.data_inicio,
+        data_fim=roteiro.data_fim,
+        custo_total_estimado=roteiro.custo_total_estimado,
+        dias=dias_resposta
+    )
+

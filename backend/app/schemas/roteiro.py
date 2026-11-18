@@ -44,3 +44,30 @@ class GerarRoteiroResponse(BaseModel):
     custo_total_estimado: float
 
     atividades: list[AtividadeRoteiroResponse]
+
+
+# Resumo de um roteiro salvo
+class RoteiroResumoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    data_inicio: date
+    data_fim: date
+    custo_total_estimado: float | None = None
+
+
+# Detalhes de um dia do roteiro
+class RoteiroDiaResponse(BaseModel):
+    data_referencia: date
+    tempo_disponivel_minutos: int | None = None
+    atividades: list[AtividadeRoteiroResponse]
+
+
+# Resposta completa de um roteiro salvo
+class RoteiroDetalhadoResponse(BaseModel):
+    id: UUID
+    data_inicio: date
+    data_fim: date
+    custo_total_estimado: float | None = None
+    dias: list[RoteiroDiaResponse]
+
