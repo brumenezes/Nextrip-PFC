@@ -1,4 +1,9 @@
+
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -9,6 +14,8 @@ from app.routers.auth import router as auth_router
 from app.routers.pontos_interesse import router as pontos_interesse_router
 from app.routers.roteiros import router as roteiros_router
 
+load_dotenv()
+
 # Criação da aplicação FastAPI
 app = FastAPI(
     title="NexTrip API",
@@ -16,16 +23,35 @@ app = FastAPI(
     version="0.1.0"
 )
 
-app.include_router(auth_router)
+# Origens autorizadas durante o desenvolvimento
+origens_padrao = (
+    "http://localhost:3000,"
+    "http://localhost:8081,"
+    "http://localhost:19006"
+)
 
-# Registro das rotas de usuários
+cors_origins = [
+    origem.strip()
+    for origem in os.getenv("CORS_ORIGINS", origens_padrao).split(",")
+    if origem.strip()
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+# Registro das rotas
 app.include_router(usuarios_router)
 app.include_router(preferencias_router)
 app.include_router(auth_router)
 app.include_router(pontos_interesse_router)
 app.include_router(roteiros_router)
 
-# Endpoint inicial
+
 @app.get("/")
 def home():
     return {
@@ -33,7 +59,6 @@ def home():
     }
 
 
-# Endpoint para verificar se a API está funcionando
 @app.get("/health")
 def health_check():
     return {
@@ -58,4 +83,3 @@ def database_health(db: Session = Depends(get_db)):
             status_code=503,
             detail="Banco de dados indisponível"
         )
-

@@ -99,7 +99,7 @@ def gerar_roteiro(
         linha.id: (linha.latitude, linha.longitude)
         for linha in coordenadas_resultado
     }
-    
+
     selecionados, custo_total, tempo_total = selecionar_pontos_interesse(
         pontos=list(pontos),
         orcamento_maximo=dados.orcamento_maximo,
@@ -133,7 +133,7 @@ def gerar_roteiro(
     db.add(novo_roteiro)
     db.add(novo_dia)
 
-    
+
     # 5. Adiciona as atrações selecionadas
     atividades_resposta = []
     ponto_anterior = None
@@ -170,6 +170,7 @@ def gerar_roteiro(
 
         db.add(visita)
 
+
         atividades_resposta.append(
             AtividadeRoteiroResponse(
                 poi_id=ponto.id,
@@ -177,9 +178,12 @@ def gerar_roteiro(
                 categoria=ponto.categoria,
                 ordem_sequencia=ordem,
                 preco_estimado=ponto.preco_estimado,
-                duracao_minutos=ponto.duracao_minutos
+                duracao_minutos=ponto.duracao_minutos,
+                tempo_deslocamento_previsto=tempo_deslocamento,
+                distancia_deslocamento_metros=distancia_metros
             )
         )
+
 
         ponto_anterior = ponto
 
@@ -195,7 +199,7 @@ def gerar_roteiro(
             detail="Erro ao salvar o roteiro no banco de dados"
         )
 
- 
+
     # 7. Retorna o roteiro gerado
     tempo_visitas = sum(
         ponto.duracao_minutos
@@ -293,7 +297,7 @@ def consultar_roteiro(
             if ponto is None:
                 continue
 
-            
+
             atividades_resposta.append(
                 AtividadeRoteiroResponse(
                     poi_id=ponto.id,

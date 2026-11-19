@@ -10,6 +10,9 @@ sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..'
 
 from app.database import Base
 from app.models.domain_models import *
+from dotenv import load_dotenv
+
+load_dotenv()
 import geoalchemy2
 from pgvector.sqlalchemy import Vector
 # ---------------------------------
@@ -17,6 +20,30 @@ from pgvector.sqlalchemy import Vector
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Seleciona o banco de acordo com o arquivo de configuração.
+arquivo_configuracao = os.path.basename(
+    config.config_file_name or ""
+)
+
+if arquivo_configuracao == "alembic_test.ini":
+    nome_variavel = "TEST_DATABASE_URL"
+else:
+    nome_variavel = "DATABASE_URL"
+
+url_banco = os.getenv(nome_variavel)
+
+if not url_banco:
+    raise RuntimeError(
+        f"A variável {nome_variavel} não foi configurada."
+    )
+
+# Define a URL que será utilizada nas migrações.
+config.set_main_option(
+    "sqlalchemy.url",
+    url_banco.replace("%", "%%")
+)
+
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
