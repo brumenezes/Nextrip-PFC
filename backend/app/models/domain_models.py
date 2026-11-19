@@ -25,6 +25,7 @@ class Preferencias(Base):
     usuario_id = Column(UUID(as_uuid=True), ForeignKey('usuario.id'), nullable=False)
     orcamento_maximo = Column(Float, nullable=True)
     perfil_embedding = Column(Vector(384), nullable=True) 
+    interesses = Column(JSONB, nullable=True)
 
     usuario = relationship("Usuario", back_populates="preferencias")
 

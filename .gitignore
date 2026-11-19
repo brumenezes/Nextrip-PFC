@@ -23,3 +23,13 @@ __pycache__/
 # Banco de dados local
 *.db
 *.sqlite3
+
+# Arquivos gerados pelos testes
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+
+# Cache do Python
+__pycache__/
+*.pyc
