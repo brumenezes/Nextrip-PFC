@@ -1,8 +1,9 @@
 
 from datetime import date
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # Dados recebidos para gerar um roteiro de um dia
@@ -18,6 +19,25 @@ class GerarRoteiroRequest(BaseModel):
         ge=0,
         description="Orçamento máximo para as atrações"
     )
+
+    quantidade_paradas: int | None = Field(
+        default=None,
+        ge=1,
+        le=19,
+        description="Quantidade exata de atrações para a rota otimizada",
+    )
+    latitude_origem: float | None = Field(default=None, ge=-90, le=90)
+    longitude_origem: float | None = Field(default=None, ge=-180, le=180)
+    peso_preferencias: float = Field(default=0.8, ge=0, le=1)
+    usar_matriz_viaria: bool = True
+    metrica_recomendacao: Literal["cosseno", "hibrido"] = "cosseno"
+    peso_cosseno: float = Field(default=0.7, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def validar_origem_completa(self):
+        if (self.latitude_origem is None) != (self.longitude_origem is None):
+            raise ValueError("Latitude e longitude de origem devem ser informadas juntas")
+        return self
 
 
 # Informações de cada atração selecionada

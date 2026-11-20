@@ -5,6 +5,7 @@ from app.services.calculadora_deslocamentos import (
     calcular_distancia_metros,
     estimar_tempo_deslocamento
 )
+from app.services.pocs.recomendacao import rankear_pontos
 
 
 def selecionar_pontos_interesse(
@@ -12,7 +13,9 @@ def selecionar_pontos_interesse(
     orcamento_maximo: float,
     tempo_disponivel_minutos: int,
     interesses: list[str] | None = None,
-    coordenadas: dict[UUID, tuple[float, float]] | None = None
+    coordenadas: dict[UUID, tuple[float, float]] | None = None,
+    metrica_recomendacao: str = "cosseno",
+    peso_cosseno: float = 0.7,
 ) -> tuple[list[PontoDeInteresse], float, int]:
     """
     Seleciona atrações considerando:
@@ -37,29 +40,15 @@ def selecionar_pontos_interesse(
         and ponto.duracao_minutos > 0
     ]
 
-    interesses_normalizados = {
-        interesse.strip().casefold()
-        for interesse in (interesses or [])
-        if interesse.strip()
-    }
-
-    def corresponde_interesse(ponto: PontoDeInteresse) -> bool:
-        if not ponto.categoria:
-            return False
-
-        return (
-            ponto.categoria.strip().casefold()
-            in interesses_normalizados
+    pontos_ordenados = [
+        item.ponto
+        for item in rankear_pontos(
+            pontos_validos,
+            interesses or [],
+            metrica_recomendacao,
+            peso_cosseno,
         )
-
-    pontos_ordenados = sorted(
-        pontos_validos,
-        key=lambda ponto: (
-            corresponde_interesse(ponto),
-            ponto.avaliacao_media or 0
-        ),
-        reverse=True
-    )
+    ]
 
     selecionados = []
     custo_total = 0.0

@@ -24,6 +24,10 @@ __pycache__/
 *.db
 *.sqlite3
 
+# Extratos brutos do OpenStreetMap (catálogos JSON validados podem ser versionados)
+*.osm
+*.osm.gz
+
 # Arquivos gerados pelos testes
 .coverage
 .coverage.*
