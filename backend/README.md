@@ -15,6 +15,8 @@ O backend é responsável pelo gerenciamento de usuários, autenticação, prefe
 - Docker Compose — execução do PostgreSQL em contêiner.
 - JWT — autenticação de usuários.
 - Pytest — testes automatizados.
+- Google OR-Tools — otimização restrita de roteiros (com fallback portátil no Windows).
+- OSRM — matriz viária opcional, com fallback Haversine.
 
 ## 2. Pré-requisitos
 
@@ -85,7 +87,7 @@ python -m venv venv
 Instale as dependências:
 
 ```powershell
-.\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 ```
 
 Copie o arquivo de exemplo:
@@ -101,6 +103,9 @@ As variáveis são:
 - `DATABASE_URL`: conexão com o banco principal.
 - `TEST_DATABASE_URL`: conexão com o banco de testes.
 - `CORS_ORIGINS`: origens autorizadas para aplicações web durante o desenvolvimento.
+- `JWT_SECRET_KEY`: segredo aleatório usado para assinar tokens; obrigatório.
+- `JWT_EXPIRE_MINUTES`: duração dos tokens.
+- `OSRM_BASE_URL`: servidor de matriz viária; o gerador usa Haversine se ele falhar.
 
 O arquivo `.env` contém configurações locais e não deve ser enviado ao GitHub.
 
@@ -207,6 +212,39 @@ A API do NexTrip disponibiliza endpoints para gerenciamento de usuários, autent
 A documentação interativa dos endpoints, incluindo os campos obrigatórios, exemplos de requisições e respostas, está disponível em:
 
 http://127.0.0.1:8000/docs
+
+### Geração otimizada de roteiros
+
+O contrato anterior de `POST /roteiros/gerar` continua válido. Os seguintes campos opcionais ativam as POCs integradas:
+
+- `quantidade_paradas` (1 a 19): quantidade exata de atrações;
+- `latitude_origem` e `longitude_origem`: devem ser enviados juntos;
+- `peso_preferencias` (0 a 1): equilíbrio entre afinidade e deslocamento;
+- `usar_matriz_viaria`: tenta OSRM e faz fallback automático para Haversine.
+- `metrica_recomendacao`: `cosseno` (compatível) ou `hibrido` (cosseno + magnitude);
+- `peso_cosseno` (0 a 1): composição da métrica híbrida.
+
+Sem `quantidade_paradas`, o endpoint preserva o modo guloso compatível, agora ordenado pela afinidade de cosseno da POC 1.
+
+### Catálogo OpenStreetMap das POCs
+
+O catálogo pequeno e real da branch de POCs foi preservado em `data/catalogo_osm_teste.json`, com metadados ODbL. Para apenas validar o arquivo:
+
+```powershell
+.\venv\Scripts\python.exe -m scripts.importar_catalogo_osm data\catalogo_osm_teste.json --validate-only
+```
+
+Para importar ou atualizar os pontos de forma idempotente:
+
+```powershell
+.\venv\Scripts\python.exe -m scripts.importar_catalogo_osm data\catalogo_osm_teste.json
+```
+
+Use `--dry-run` para executar as consultas e desfazer a transação. Durações são estimativas heurísticas e o preço padrão é zero; ajuste `--preco-padrao` somente quando essa regra fizer sentido para o catálogo importado. A atribuição **© OpenStreetMap contributors** deve permanecer visível nos consumidores dos dados.
+
+## Entrega contínua
+
+O CI prepara bancos isolados, aplica migrações, exige cobertura mínima e valida o catálogo. Depois de um push aprovado em `develop`, `release` ou `main`, o workflow **Delivery Backend** publica no GHCR uma imagem não-root com tag da branch e tag imutável do commit, incluindo SBOM. O deploy em uma infraestrutura específica continua separado porque o repositório ainda não define provedor, cluster ou credenciais.
 
 ## 8. Autenticação JWT
 

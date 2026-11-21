@@ -2,13 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select, func, cast
 from geoalchemy2 import Geometry
-from app.services.gerador_roteiros import selecionar_pontos_interesse
 from sqlalchemy.orm import Session
-
-from app.services.calculadora_deslocamentos import (
-    calcular_distancia_metros,
-    estimar_tempo_deslocamento
-)
 
 from app.database import get_db
 from app.core.dependencies import obter_usuario_atual
@@ -29,7 +23,8 @@ from app.schemas.roteiro import (
     RoteiroDiaResponse,
     RoteiroDetalhadoResponse
 )
-from app.services.gerador_roteiros import selecionar_pontos_interesse
+from app.services.planejador_roteiros import planejar_roteiro
+from app.services.pocs.otimizacao import RotaInviavelError
 
 
 router = APIRouter(
@@ -100,16 +95,29 @@ def gerar_roteiro(
         for linha in coordenadas_resultado
     }
 
-    selecionados, custo_total, tempo_total = selecionar_pontos_interesse(
-        pontos=list(pontos),
-        orcamento_maximo=dados.orcamento_maximo,
-        tempo_disponivel_minutos=dados.tempo_disponivel_minutos,
-        interesses=interesses_usuario,
-        coordenadas=coordenadas
-    )
+    origem = None
+    if dados.latitude_origem is not None and dados.longitude_origem is not None:
+        origem = (dados.latitude_origem, dados.longitude_origem)
 
+    try:
+        plano = planejar_roteiro(
+            pontos=list(pontos),
+            orcamento_maximo=dados.orcamento_maximo,
+            tempo_disponivel_minutos=dados.tempo_disponivel_minutos,
+            interesses=interesses_usuario,
+            coordenadas=coordenadas,
+            quantidade_paradas=dados.quantidade_paradas,
+            origem=origem,
+            peso_preferencias=dados.peso_preferencias,
+            usar_matriz_viaria=dados.usar_matriz_viaria,
+            metrica_recomendacao=dados.metrica_recomendacao,
+            peso_cosseno=dados.peso_cosseno,
+            retornar_origem=dados.retornar_origem,
+        )
+    except RotaInviavelError as erro:
+        raise HTTPException(status_code=422, detail=str(erro)) from erro
 
-    if not selecionados:
+    if not plano.atividades:
         raise HTTPException(
             status_code=422,
             detail="Nenhuma atração atende ao orçamento e tempo disponíveis"
@@ -120,7 +128,7 @@ def gerar_roteiro(
         usuario_id=usuario_atual.id,
         data_inicio=dados.data_visita,
         data_fim=dados.data_visita,
-        custo_total_estimado=custo_total
+        custo_total_estimado=plano.custo_total
     )
 
     # 4. Cria o dia do roteiro
@@ -136,28 +144,10 @@ def gerar_roteiro(
 
     # 5. Adiciona as atrações selecionadas
     atividades_resposta = []
-    ponto_anterior = None
-
-    for ordem, ponto in enumerate(selecionados, start=1):
-        distancia_metros = 0.0
-        tempo_deslocamento = 0
-
-        # Calcula o deslocamento a partir da atração anterior
-        if ponto_anterior is not None:
-            origem = coordenadas.get(ponto_anterior.id)
-            destino = coordenadas.get(ponto.id)
-
-            if origem is not None and destino is not None:
-                distancia_metros = calcular_distancia_metros(
-                    origem[0],
-                    origem[1],
-                    destino[0],
-                    destino[1]
-                )
-
-                tempo_deslocamento = estimar_tempo_deslocamento(
-                    distancia_metros
-                )
+    for ordem, atividade in enumerate(plano.atividades, start=1):
+        ponto = atividade.ponto
+        distancia_metros = atividade.distancia_deslocamento_metros
+        tempo_deslocamento = atividade.tempo_deslocamento
 
         visita = VisitaAtividade(
             roteiro_dia=novo_dia,
@@ -183,11 +173,6 @@ def gerar_roteiro(
                 distancia_deslocamento_metros=distancia_metros
             )
         )
-
-
-        ponto_anterior = ponto
-
-
     # 6. Salva todos os registros no banco
     try:
         db.commit()
@@ -201,22 +186,15 @@ def gerar_roteiro(
 
 
     # 7. Retorna o roteiro gerado
-    tempo_visitas = sum(
-        ponto.duracao_minutos
-        for ponto in selecionados
-    )
-
-    tempo_deslocamentos = tempo_total - tempo_visitas
-
     return GerarRoteiroResponse(
         roteiro_id=novo_roteiro.id,
         data_visita=dados.data_visita,
         tempo_disponivel_minutos=dados.tempo_disponivel_minutos,
-        tempo_total_visitas=tempo_visitas,
-        tempo_total_deslocamentos=tempo_deslocamentos,
-        tempo_total_roteiro=tempo_total,
+        tempo_total_visitas=plano.tempo_visitas,
+        tempo_total_deslocamentos=plano.tempo_deslocamentos,
+        tempo_total_roteiro=plano.tempo_total,
         orcamento_maximo=dados.orcamento_maximo,
-        custo_total_estimado=custo_total,
+        custo_total_estimado=plano.custo_total,
         atividades=atividades_resposta
     )
 

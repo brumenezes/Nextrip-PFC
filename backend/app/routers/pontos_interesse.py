@@ -11,6 +11,7 @@ from app.schemas.ponto_interesse import (
     PontoInteresseCreate,
     PontoInteresseResponse
 )
+from app.services.qualidade_pois import nome_poi_e_util
 
 
 router = APIRouter(
@@ -164,6 +165,7 @@ def listar_pontos_interesse(
             longitude
         )
         for poi, latitude, longitude in resultado
+        if nome_poi_e_util(poi.nome)
     ]
 
 
