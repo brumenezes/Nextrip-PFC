@@ -194,6 +194,32 @@ def test_gerar_roteiro_otimizado_considera_origem(ambiente_roteiros):
     assert atividade["distancia_deslocamento_metros"] > 0
 
 
+def test_gerar_roteiro_inclui_retorno_ao_ponto_de_partida(ambiente_roteiros):
+    cliente, banco, usuario = ambiente_roteiros
+    preparar_geracao(banco)
+    dados = dados_roteiro_validos()
+    dados.update({
+        "quantidade_paradas": 1,
+        "latitude_origem": -23.5505,
+        "longitude_origem": -46.6333,
+        "usar_matriz_viaria": False,
+        "retornar_origem": True,
+    })
+
+    resposta = cliente.post("/roteiros/gerar", json=dados)
+
+    assert resposta.status_code == 201
+    resultado = resposta.json()
+    deslocamento_ate_atividade = resultado["atividades"][0][
+        "tempo_deslocamento_previsto"
+    ]
+    assert resultado["tempo_total_deslocamentos"] > deslocamento_ate_atividade
+    assert resultado["tempo_total_roteiro"] == (
+        resultado["tempo_total_visitas"]
+        + resultado["tempo_total_deslocamentos"]
+    )
+
+
 def test_rejeitar_origem_incompleta(ambiente_roteiros):
     cliente, banco, usuario = ambiente_roteiros
     dados = dados_roteiro_validos()

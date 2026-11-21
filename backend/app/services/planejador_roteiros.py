@@ -12,6 +12,7 @@ from app.services.gerador_roteiros import selecionar_pontos_interesse
 from app.services.pocs.matriz_deslocamentos import obter_matriz_deslocamentos
 from app.services.pocs.otimizacao import otimizar_rota
 from app.services.pocs.recomendacao import pontuar_afinidade, rankear_pontos
+from app.services.qualidade_pois import nome_poi_e_util
 
 
 class PontoPlanejavel(Protocol):
@@ -106,11 +107,13 @@ def _criar_plano_otimizado(
     usar_matriz_viaria: bool,
     metrica_recomendacao: str,
     peso_cosseno: float,
+    retornar_origem: bool,
 ) -> PlanoRoteiro:
     candidatos_validos = [
         ponto
         for ponto in pontos
         if ponto.id in coordenadas
+        and nome_poi_e_util(ponto.nome)
         and ponto.preco_estimado is not None
         and 0 <= ponto.preco_estimado <= orcamento_maximo
         and ponto.duracao_minutos is not None
@@ -150,8 +153,13 @@ def _criar_plano_otimizado(
         0,
         *(round(float(ponto.preco_estimado or 0) * 100) for ponto in candidatos),
     ]
+    matriz_otimizacao = (
+        matriz.tempos_minutos
+        if retornar_origem
+        else _zerar_retorno_ao_deposito(matriz.tempos_minutos)
+    )
     rota = otimizar_rota(
-        matriz_minutos=_zerar_retorno_ao_deposito(matriz.tempos_minutos),
+        matriz_minutos=matriz_otimizacao,
         duracoes_minutos=duracoes,
         afinidades=afinidades,
         quantidade_paradas=quantidade_paradas,
@@ -176,11 +184,16 @@ def _criar_plano_otimizado(
         )
         indice_anterior = indice
 
+    tempo_retorno = matriz.tempos_minutos[indice_anterior][0] if retornar_origem else 0
+
     return PlanoRoteiro(
         atividades=atividades,
         custo_total=sum(float(item.ponto.preco_estimado or 0) for item in atividades),
         tempo_visitas=sum(int(item.ponto.duracao_minutos or 0) for item in atividades),
-        tempo_deslocamentos=sum(item.tempo_deslocamento for item in atividades),
+        tempo_deslocamentos=(
+            sum(item.tempo_deslocamento for item in atividades)
+            + tempo_retorno
+        ),
         fonte_matriz=matriz.fonte,
     )
 
@@ -197,6 +210,7 @@ def planejar_roteiro(
     usar_matriz_viaria: bool = True,
     metrica_recomendacao: str = "cosseno",
     peso_cosseno: float = 0.7,
+    retornar_origem: bool = False,
 ) -> PlanoRoteiro:
     if quantidade_paradas is None:
         return _criar_plano_guloso(
@@ -220,4 +234,5 @@ def planejar_roteiro(
         usar_matriz_viaria,
         metrica_recomendacao,
         peso_cosseno,
+        retornar_origem,
     )

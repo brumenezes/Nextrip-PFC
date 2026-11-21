@@ -32,6 +32,7 @@ class GerarRoteiroRequest(BaseModel):
     usar_matriz_viaria: bool = True
     metrica_recomendacao: Literal["cosseno", "hibrido"] = "cosseno"
     peso_cosseno: float = Field(default=0.7, ge=0, le=1)
+    retornar_origem: bool = False
 
     @model_validator(mode="after")
     def validar_origem_completa(self):

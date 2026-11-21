@@ -112,6 +112,7 @@ def gerar_roteiro(
             usar_matriz_viaria=dados.usar_matriz_viaria,
             metrica_recomendacao=dados.metrica_recomendacao,
             peso_cosseno=dados.peso_cosseno,
+            retornar_origem=dados.retornar_origem,
         )
     except RotaInviavelError as erro:
         raise HTTPException(status_code=422, detail=str(erro)) from erro
