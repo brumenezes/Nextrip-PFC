@@ -1,5 +1,27 @@
 
 services:
+  api:
+    profiles: [app]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: nextrip-api:local
+    container_name: nextrip_api
+
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nextrip_user}:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}@db:5432/${POSTGRES_DB:-nextrip_db}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no arquivo .env}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
+      OSRM_BASE_URL: ${OSRM_BASE_URL:-https://router.project-osrm.org}
+
+    ports:
+      - "8088:8000"
+
+    depends_on:
+      - db
+
+    restart: unless-stopped
+
   db:
     build:
       context: ./infra
