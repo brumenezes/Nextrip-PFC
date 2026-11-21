@@ -10,8 +10,10 @@ type AuthContextValue = {
   token: string | null;
   userId: string | null;
   displayName: string | null;
+  fullName: string | null;
+  email: string | null;
   isRestoring: boolean;
-  signIn: (token: string, displayName: string | null) => Promise<void>;
+  signIn: (token: string, identity: { displayName: string | null; fullName: string | null; email: string }) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -20,21 +22,31 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: PropsWithChildren) {
   const [token, setToken] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [isRestoring, setIsRestoring] = useState(true);
 
   const signOut = useCallback(async () => {
     setToken(null);
     setDisplayName(null);
+    setFullName(null);
+    setEmail(null);
     configureApiSession({ token: null });
     queryClient.clear();
     await sessionStorage.clearToken();
   }, []);
 
-  const signIn = useCallback(async (newToken: string, newDisplayName: string | null) => {
+  const signIn = useCallback(async (
+    newToken: string,
+    identity: { displayName: string | null; fullName: string | null; email: string },
+  ) => {
     await sessionStorage.setToken(newToken);
-    if (newDisplayName) await sessionStorage.setDisplayName(newDisplayName);
+    if (identity.displayName) await sessionStorage.setDisplayName(identity.displayName);
+    await sessionStorage.setCurrentIdentity({ fullName: identity.fullName, email: identity.email });
     setToken(newToken);
-    setDisplayName(newDisplayName);
+    setDisplayName(identity.displayName);
+    setFullName(identity.fullName);
+    setEmail(identity.email);
   }, []);
 
   useEffect(() => {
@@ -43,6 +55,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       .then(() => {
         setToken(null);
         setDisplayName(null);
+        setFullName(null);
+        setEmail(null);
       })
       .finally(() => setIsRestoring(false));
   }, []);
@@ -53,8 +67,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const userId = useMemo(() => getUserIdFromToken(token), [token]);
   const value = useMemo(
-    () => ({ token, userId, displayName, isRestoring, signIn, signOut }),
-    [displayName, isRestoring, signIn, signOut, token, userId],
+    () => ({ token, userId, displayName, fullName, email, isRestoring, signIn, signOut }),
+    [displayName, email, fullName, isRestoring, signIn, signOut, token, userId],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { getErrorMessage } from '@/api/errors';
@@ -8,20 +9,26 @@ import { colors, radii, spacing, typography } from '@/design-system';
 import { listPointsOfInterest } from '@/features/pontos-interesse/service';
 import type { PointOfInterest } from '@/features/pontos-interesse/types';
 import { getCategoryPresentation } from '@/features/pontos-interesse/categories';
-import { formatCurrency } from '@/utils/formatters';
+import { formatAdmissionPrice } from '@/utils/formatters';
 
 function PointCard({ point }: { point: PointOfInterest }) {
   const category = getCategoryPresentation(point.categoria);
 
   return (
-    <Card style={styles.card}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Ver detalhes de ${point.nome}`}
+      onPress={() => router.push({ pathname: '/(private)/atracoes/[id]', params: { id: point.id } })}
+      style={({ pressed }) => [styles.cardPressable, pressed && styles.cardPressed]}
+    >
+      <Card style={styles.card}>
       <View style={styles.iconContainer}>
         <Ionicons name={category.icon} size={24} color={colors.primary} />
       </View>
       <Text style={styles.cardTitle}>{point.nome}</Text>
       <CategoryBadge category={point.categoria} />
       <View style={styles.metadata}>
-        <Text style={styles.metadataText}>{formatCurrency(point.preco_estimado)}</Text>
+        <Text style={styles.priceText}>{formatAdmissionPrice(point.preco_estimado)}</Text>
         <Text style={styles.separator}>•</Text>
         <Text style={styles.metadataText}>
           {point.duracao_minutos === null ? 'Duração não informada' : `${point.duracao_minutos} min`}
@@ -33,7 +40,12 @@ function PointCard({ point }: { point: PointOfInterest }) {
           <Text style={styles.metadataText}>{point.avaliacao_media.toFixed(1)}</Text>
         </View>
       ) : null}
-    </Card>
+        <View style={styles.detailsLink}>
+          <Text style={styles.detailsLinkText}>Ver detalhes</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.actionPressed} />
+        </View>
+      </Card>
+    </Pressable>
   );
 }
 
@@ -92,6 +104,8 @@ const styles = StyleSheet.create({
   },
   list: { gap: spacing.md, paddingBottom: spacing.xl },
   listView: { flex: 1 },
+  cardPressable: { width: '100%', borderRadius: radii.lg },
+  cardPressed: { opacity: 0.72 },
   card: { width: '100%' },
   iconContainer: {
     width: 46,
@@ -104,8 +118,11 @@ const styles = StyleSheet.create({
   cardTitle: { ...typography.title, color: colors.primary, textAlign: 'center' },
   metadata: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.xs },
   metadataText: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
+  priceText: { ...typography.caption, color: colors.actionPressed, textAlign: 'center' },
   separator: { ...typography.caption, color: colors.border },
   rating: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs },
+  detailsLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs },
+  detailsLinkText: { ...typography.label, color: colors.actionPressed, textAlign: 'center' },
   attribution: {
     ...typography.caption,
     color: colors.textSecondary,

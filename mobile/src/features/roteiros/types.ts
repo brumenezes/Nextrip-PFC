@@ -16,6 +16,7 @@ export type GenerateItineraryInput = {
   peso_cosseno?: number;
   latitude_origem?: number;
   longitude_origem?: number;
+  retornar_origem?: boolean;
 };
 
 export type ItineraryActivity = {
@@ -39,4 +40,14 @@ export type GeneratedItinerary = {
   tempo_total_deslocamentos: number;
   tempo_total_roteiro: number;
   atividades: ItineraryActivity[];
+};
+
+export type ItineraryDay = {
+  data_referencia: string;
+  tempo_disponivel_minutos: number | null;
+  atividades: ItineraryActivity[];
+};
+
+export type DetailedItinerary = ItinerarySummary & {
+  dias: ItineraryDay[];
 };

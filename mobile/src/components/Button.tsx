@@ -51,10 +51,12 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   label: {
     ...typography.label,
+    fontSize: 13,
     color: colors.white,
     includeFontPadding: false,
     textAlign: 'center',
     textAlignVertical: 'center',
+    transform: [{ translateY: -1 }],
   },
   labelSecondary: { color: colors.primary },
 });

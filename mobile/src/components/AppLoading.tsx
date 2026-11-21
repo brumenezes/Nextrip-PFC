@@ -1,7 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { colors } from '@/design-system';
+import { colors, spacing, typography } from '@/design-system';
 
 export function AppLoading() {
   return (
@@ -13,6 +13,7 @@ export function AppLoading() {
         source={require('../../assets/nextrip-logo.png')}
         style={styles.logo}
       />
+      <Text style={styles.brandName}>nextrip</Text>
     </View>
   );
 }
@@ -25,4 +26,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   logo: { width: 164, height: 164, borderRadius: 28 },
+  brandName: {
+    ...typography.heading,
+    marginTop: spacing.md,
+    minHeight: 44,
+    paddingBottom: spacing.xs,
+    lineHeight: 38,
+    color: colors.white,
+    letterSpacing: 1.5,
+    textAlign: 'center',
+  },
 });

@@ -9,3 +9,8 @@ export type UserResponse = {
   nome: string;
   email: string;
 };
+
+export type ChangePasswordRequest = {
+  senha_atual: string;
+  nova_senha: string;
+};

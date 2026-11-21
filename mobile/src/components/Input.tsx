@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { colors, radii, spacing, typography } from '@/design-system';
 
@@ -28,16 +28,18 @@ const styles = StyleSheet.create({
   label: { ...typography.label, color: colors.text, textAlign: 'left' },
   input: {
     ...typography.body,
+    fontSize: 15,
+    lineHeight: 20,
     height: 54,
     paddingHorizontal: spacing.md,
-    paddingTop: 0,
-    paddingBottom: 0,
+    paddingTop: Platform.OS === 'ios' ? 13 : 0,
+    paddingBottom: Platform.OS === 'ios' ? 17 : 0,
     color: colors.text,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    textAlign: 'center',
+    textAlign: 'left',
     textAlignVertical: 'center',
     includeFontPadding: false,
   },

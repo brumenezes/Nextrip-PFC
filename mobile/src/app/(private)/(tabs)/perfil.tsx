@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -13,7 +14,7 @@ import { getPreferences } from '@/features/preferencias/service';
 import { formatCurrency } from '@/utils/formatters';
 
 export default function ProfileScreen() {
-  const { userId, signOut } = useAuth();
+  const { userId, displayName, fullName, email, signOut } = useAuth();
   const [editing, setEditing] = useState(false);
   const preferencesQuery = useQuery({
     queryKey: ['preferences', userId],
@@ -77,10 +78,34 @@ export default function ProfileScreen() {
           <Ionicons name="person" size={34} color={colors.white} />
         </View>
         <Text style={styles.title}>Seu perfil</Text>
+        <Text style={styles.profileName}>{fullName ?? displayName ?? 'Viajante Nextrip'}</Text>
+        {email ? <Text style={styles.profileEmail}>{email}</Text> : null}
         <Text style={styles.subtitle}>
           Suas escolhas ajudam o Nextrip a criar experiências mais alinhadas com você.
         </Text>
       </View>
+
+      <Card style={styles.accountCard}>
+        <View style={styles.accountRow}>
+          <View style={styles.accountIcon}>
+            <Ionicons name="mail-outline" size={21} color={colors.secondary} />
+          </View>
+          <View style={styles.cardText}>
+            <Text style={styles.cardLabel}>Conta</Text>
+            <Text style={styles.accountValue}>{email ?? 'E-mail indisponível nesta sessão'}</Text>
+          </View>
+        </View>
+        <View style={styles.accountDivider} />
+        <View style={styles.accountRow}>
+          <View style={styles.accountIcon}>
+            <Ionicons name="language-outline" size={21} color={colors.actionPressed} />
+          </View>
+          <View style={styles.cardText}>
+            <Text style={styles.cardLabel}>Moeda preferida</Text>
+            <Text style={styles.accountValue}>{currencyQuery.data ?? 'BRL'}</Text>
+          </View>
+        </View>
+      </Card>
 
       <Card style={styles.budgetCard}>
         <View style={styles.cardIcon}>
@@ -114,6 +139,16 @@ export default function ProfileScreen() {
           variant="secondary"
           onPress={() => setEditing(true)}
         />
+        <Button
+          label="Trocar senha"
+          variant="secondary"
+          onPress={() => router.push('/(private)/trocar-senha')}
+        />
+        <Button
+          label="Ver atividade da API"
+          variant="secondary"
+          onPress={() => router.push('/(private)/diagnostico-api')}
+        />
         <Button label="Sair da conta" variant="ghost" onPress={() => void signOut()} />
       </View>
     </Screen>
@@ -134,6 +169,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   title: { ...typography.heading, color: colors.primary, textAlign: 'center' },
+  profileName: { ...typography.title, color: colors.primary, textAlign: 'center' },
+  profileEmail: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
   subtitle: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
   budgetCard: {
     width: '100%',
@@ -142,6 +179,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
+  accountCard: { width: '100%', alignItems: 'stretch' },
+  accountRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  accountIcon: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.md,
+    backgroundColor: colors.primarySoft,
+  },
+  accountDivider: { width: '100%', height: 1, backgroundColor: colors.border },
+  accountValue: { ...typography.label, color: colors.primary, textAlign: 'left' },
   cardIcon: {
     width: 52,
     height: 52,

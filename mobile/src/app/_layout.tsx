@@ -9,19 +9,42 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '@/api/query-client';
-import { AuthProvider } from '@/auth/AuthProvider';
+import { AuthProvider, useAuth } from '@/auth/AuthProvider';
+import { AnimatedSplash } from '@/components';
 import { colors } from '@/design-system';
 
 void SplashScreen.preventAutoHideAsync();
 
 const rootScreenOptions = {
   headerShown: false,
+  animation: 'none',
   contentStyle: { backgroundColor: colors.background },
 } as const;
+
+function AppNavigator() {
+  const { isRestoring } = useAuth();
+  const [startupFinished, setStartupFinished] = useState(false);
+  const finishStartup = useCallback(() => setStartupFinished(true), []);
+
+  if (!startupFinished) {
+    return <AnimatedSplash ready={!isRestoring} onFinish={finishStartup} />;
+  }
+
+  return (
+    <>
+      <StatusBar style="dark" />
+      <Stack screenOptions={rootScreenOptions}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(public)" />
+        <Stack.Screen name="(private)" />
+      </Stack>
+    </>
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -35,12 +58,13 @@ export default function RootLayout() {
     if (fontsLoaded) void SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
+  if (!fontsLoaded) return null;
+
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <StatusBar style="dark" />
-          <Stack screenOptions={rootScreenOptions} />
+          <AppNavigator />
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

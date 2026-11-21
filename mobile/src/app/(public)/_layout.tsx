@@ -9,7 +9,7 @@ export default function PublicLayout() {
   if (isRestoring) {
     return <AppLoading />;
   }
-  if (token) return <Redirect href="/(private)" />;
+  if (token) return <Redirect href="/(private)/(tabs)" />;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return <Stack screenOptions={{ headerShown: false, animation: 'none' }} />;
 }

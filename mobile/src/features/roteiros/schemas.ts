@@ -1,9 +1,29 @@
 import { z } from 'zod';
 
-const dataCivil = /^\d{4}-\d{2}-\d{2}$/;
+const dataBrasileira = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+
+function isValidBrazilianDate(value: string) {
+  const match = dataBrasileira.exec(value);
+  if (!match) return false;
+  const [, dayText, monthText, yearText] = match;
+  const day = Number(dayText);
+  const month = Number(monthText);
+  const year = Number(yearText);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day;
+}
+
+export function toApiCivilDate(value: string) {
+  const [day, month, year] = value.split('/');
+  return `${year}-${month}-${day}`;
+}
 
 export const generateItinerarySchema = z.object({
-  data_visita: z.string().regex(dataCivil, 'Use o formato AAAA-MM-DD'),
+  data_visita: z.string()
+    .regex(dataBrasileira, 'Use o formato DD/MM/AAAA')
+    .refine(isValidBrazilianDate, 'Informe uma data válida'),
   tempo_disponivel_minutos: z.coerce
     .number<number>('Informe o tempo disponível')
     .int('Use minutos inteiros')

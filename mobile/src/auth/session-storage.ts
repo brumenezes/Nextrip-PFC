@@ -3,6 +3,8 @@ import { Platform } from 'react-native';
 
 const TOKEN_KEY = 'nextrip.access-token';
 const DISPLAY_NAME_KEY = 'nextrip.display-name';
+const FULL_NAME_KEY = 'nextrip.full-name';
+const EMAIL_KEY = 'nextrip.email';
 let webSessionToken: string | null = null;
 let webDisplayName: string | null = null;
 const webKnownNames = new Map<string, string>();
@@ -35,6 +37,14 @@ export const sessionStorage = {
     }
     await SecureStore.setItemAsync(DISPLAY_NAME_KEY, displayName);
   },
+  setCurrentIdentity: async (identity: { fullName: string | null; email: string }) => {
+    if (Platform.OS === 'web') {
+      return;
+    }
+    const writes = [SecureStore.setItemAsync(EMAIL_KEY, identity.email)];
+    if (identity.fullName) writes.push(SecureStore.setItemAsync(FULL_NAME_KEY, identity.fullName));
+    await Promise.all(writes);
+  },
   getKnownDisplayName: async (email: string) => {
     const key = knownNameKey(email);
     if (Platform.OS === 'web') return webKnownNames.get(key) ?? null;
@@ -57,6 +67,8 @@ export const sessionStorage = {
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
       SecureStore.deleteItemAsync(DISPLAY_NAME_KEY),
+      SecureStore.deleteItemAsync(FULL_NAME_KEY),
+      SecureStore.deleteItemAsync(EMAIL_KEY),
     ]);
   },
 };

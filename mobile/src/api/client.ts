@@ -1,6 +1,7 @@
 import { env } from '@/config/env';
 
 import { ApiError, type ValidationIssue } from './errors';
+import { recordApiActivity } from './activity';
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -33,6 +34,9 @@ async function parseResponse(response: Response) {
 }
 
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const startedAt = Date.now();
+  const method = options.method?.toUpperCase() ?? 'GET';
+  let activityRecorded = false;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   const headers = new Headers(options.headers);
@@ -52,6 +56,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       signal: controller.signal,
     });
     const payload = await parseResponse(response);
+    recordApiActivity({
+      method,
+      path,
+      status: response.status,
+      ok: response.ok,
+      durationMs: Date.now() - startedAt,
+    });
+    activityRecorded = true;
 
     if (!response.ok) {
       const detail = (payload as ErrorPayload | undefined)?.detail;
@@ -67,6 +79,15 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
     return payload as T;
   } catch (error) {
+    if (!activityRecorded) {
+      recordApiActivity({
+        method,
+        path,
+        status: error instanceof Error && error.name === 'AbortError' ? 408 : 0,
+        ok: false,
+        durationMs: Date.now() - startedAt,
+      });
+    }
     if (error instanceof ApiError) throw error;
     if (error instanceof Error && error.name === 'AbortError') {
       throw new ApiError('A API demorou para responder. Tente novamente.', 408);

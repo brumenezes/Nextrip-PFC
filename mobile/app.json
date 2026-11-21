@@ -32,6 +32,12 @@
       "expo-secure-store",
       "expo-font",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permita que o Nextrip use sua localização para calcular o melhor início do roteiro."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {

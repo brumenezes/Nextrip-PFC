@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { Link, router, useLocalSearchParams } from 'expo-router';
+import { Link, useLocalSearchParams } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -32,8 +32,11 @@ export default function LoginScreen() {
       const knownName = registeredName
         || await sessionStorage.getKnownDisplayName(credentials.email);
       const firstName = knownName?.split(/\s+/)[0] ?? null;
-      await signIn(response.access_token, firstName);
-      router.replace('/(private)');
+      await signIn(response.access_token, {
+        displayName: firstName,
+        fullName: knownName ?? null,
+        email: credentials.email.trim().toLocaleLowerCase('pt-BR'),
+      });
     },
   });
 

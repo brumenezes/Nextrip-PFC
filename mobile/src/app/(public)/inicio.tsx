@@ -1,18 +1,5 @@
-import { router } from 'expo-router';
-import { useEffect } from 'react';
-
-import { AppLoading } from '@/components';
-
-const INTRO_DURATION_MS = 1_600;
+import { Redirect } from 'expo-router';
 
 export default function IntroScreen() {
-  useEffect(() => {
-    const redirectTimer = setTimeout(() => {
-      router.replace('/(public)/login');
-    }, INTRO_DURATION_MS);
-
-    return () => clearTimeout(redirectTimer);
-  }, []);
-
-  return <AppLoading />;
+  return <Redirect href="/(public)/login" />;
 }

@@ -5,6 +5,12 @@ export function formatCurrency(value: number | null, currency: TravelCurrency = 
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(value);
 }
 
+export function formatAdmissionPrice(value: number | null, currency: TravelCurrency = 'BRL') {
+  if (value === null) return 'Preço não informado';
+  if (value === 0) return 'Entrada gratuita';
+  return formatCurrency(value, currency);
+}
+
 export function formatCivilDate(value: string) {
   const [year, month, day] = value.split('-');
   return year && month && day ? `${day}/${month}/${year}` : value;

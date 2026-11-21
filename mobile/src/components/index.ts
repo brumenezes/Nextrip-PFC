@@ -1,4 +1,6 @@
 export * from './AppLoading';
+export * from './AnimatedSplash';
+export * from './AttractionMap';
 export * from './Button';
 export * from './BrandLogo';
 export * from './Card';
