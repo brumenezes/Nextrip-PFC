@@ -15,3 +15,8 @@ class UsuarioResponse(BaseModel):
     email: EmailStr
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AlterarSenhaRequest(BaseModel):
+    senha_atual: str = Field(min_length=1)
+    nova_senha: str = Field(min_length=8)
