@@ -93,6 +93,7 @@ def gerar_roteiro(
     coordenadas = {
         linha.id: (linha.latitude, linha.longitude)
         for linha in coordenadas_resultado
+        if linha.latitude is not None and linha.longitude is not None
     }
 
     origem = None
@@ -108,7 +109,9 @@ def gerar_roteiro(
             coordenadas=coordenadas,
             quantidade_paradas=dados.quantidade_paradas,
             origem=origem,
-            peso_preferencias=dados.peso_preferencias,
+            peso_preferencias=(
+                dados.peso_preferencias if "peso_preferencias" in dados.model_fields_set else None
+            ),
             usar_matriz_viaria=dados.usar_matriz_viaria,
             metrica_recomendacao=dados.metrica_recomendacao,
             peso_cosseno=dados.peso_cosseno,

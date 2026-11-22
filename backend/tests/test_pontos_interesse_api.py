@@ -128,6 +128,22 @@ def test_listar_pontos_interesse_vazio(ambiente_poi):
     assert resposta.json() == []
 
 
+def test_listar_pontos_interesse_filtra_nome_generico(ambiente_poi):
+    cliente, banco = ambiente_poi
+    generico = criar_poi_ficticio()
+    generico.nome = "  PORTÃO  "
+    descritivo = criar_poi_ficticio()
+    descritivo.nome = "Portão Cultural"
+    banco.execute.return_value.all.return_value = [
+        (poi, -23.5855, -46.6097) for poi in (generico, descritivo)
+    ]
+
+    resposta = cliente.get("/pontos-interesse")
+
+    assert resposta.status_code == 200
+    assert [poi["nome"] for poi in resposta.json()] == ["Portão Cultural"]
+
+
 def test_consultar_poi_por_id(ambiente_poi):
     cliente, banco = ambiente_poi
 

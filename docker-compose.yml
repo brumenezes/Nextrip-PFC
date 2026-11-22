@@ -1,7 +1,6 @@
 
 services:
   api:
-    profiles: [app]
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -18,7 +17,8 @@ services:
       - "8088:8000"
 
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
     restart: unless-stopped
 
@@ -36,6 +36,13 @@ services:
 
     ports:
       - "5433:5432"
+
+    healthcheck:
+      # O servidor temporário de inicialização atende somente pelo socket Unix.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
     volumes:
       - nextrip_data:/var/lib/postgresql/data

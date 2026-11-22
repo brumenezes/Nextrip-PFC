@@ -12,11 +12,13 @@ class GerarRoteiroRequest(BaseModel):
 
     tempo_disponivel_minutos: int = Field(
         gt=0,
+        le=2_147_483_647,
         description="Tempo disponível para visitar atrações"
     )
 
     orcamento_maximo: float = Field(
         ge=0,
+        allow_inf_nan=False,
         description="Orçamento máximo para as atrações"
     )
 
@@ -29,7 +31,7 @@ class GerarRoteiroRequest(BaseModel):
     latitude_origem: float | None = Field(default=None, ge=-90, le=90)
     longitude_origem: float | None = Field(default=None, ge=-180, le=180)
     peso_preferencias: float = Field(default=0.8, ge=0, le=1)
-    usar_matriz_viaria: bool = True
+    usar_matriz_viaria: bool = False
     metrica_recomendacao: Literal["cosseno", "hibrido"] = "cosseno"
     peso_cosseno: float = Field(default=0.7, ge=0, le=1)
     retornar_origem: bool = False
@@ -38,6 +40,8 @@ class GerarRoteiroRequest(BaseModel):
     def validar_origem_completa(self):
         if (self.latitude_origem is None) != (self.longitude_origem is None):
             raise ValueError("Latitude e longitude de origem devem ser informadas juntas")
+        if self.retornar_origem and self.latitude_origem is None:
+            raise ValueError("Informe a origem para incluir o retorno")
         return self
 
 

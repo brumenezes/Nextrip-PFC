@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal, ROUND_CEILING, ROUND_FLOOR
 from typing import Protocol
 from uuid import UUID
 
@@ -11,7 +12,7 @@ from app.services.calculadora_deslocamentos import (
 from app.services.gerador_roteiros import selecionar_pontos_interesse
 from app.services.pocs.matriz_deslocamentos import obter_matriz_deslocamentos
 from app.services.pocs.otimizacao import otimizar_rota
-from app.services.pocs.recomendacao import pontuar_afinidade, rankear_pontos
+from app.services.pocs.recomendacao import rankear_pontos
 from app.services.qualidade_pois import nome_poi_e_util
 
 
@@ -101,7 +102,7 @@ def _criar_plano_otimizado(
     tempo_disponivel_minutos: int,
     interesses: list[str],
     coordenadas: dict[UUID, tuple[float, float]],
-    quantidade_paradas: int,
+    quantidade_paradas: int | None,
     origem: tuple[float, float] | None,
     peso_preferencias: float,
     usar_matriz_viaria: bool,
@@ -112,23 +113,16 @@ def _criar_plano_otimizado(
     candidatos_validos = [
         ponto
         for ponto in pontos
-        if ponto.id in coordenadas
-        and nome_poi_e_util(ponto.nome)
-        and ponto.preco_estimado is not None
+        if ponto.preco_estimado is not None
         and 0 <= ponto.preco_estimado <= orcamento_maximo
         and ponto.duracao_minutos is not None
         and 0 < ponto.duracao_minutos <= tempo_disponivel_minutos
     ]
-    candidatos = [
-        item.ponto
-        for item in rankear_pontos(
-            candidatos_validos,
-            interesses,
-            metrica_recomendacao,
-            peso_cosseno,
-        )[:19]
-    ]
-    if len(candidatos) < quantidade_paradas:
+    ranking = rankear_pontos(
+        candidatos_validos, interesses, metrica_recomendacao, peso_cosseno
+    )[:19]
+    candidatos = [item.ponto for item in ranking]
+    if len(candidatos) < (quantidade_paradas or 1):
         return PlanoRoteiro([], 0.0, 0, 0, "indisponivel")
 
     matriz = obter_matriz_deslocamentos(
@@ -137,22 +131,20 @@ def _criar_plano_otimizado(
         usar_osrm=usar_matriz_viaria,
     )
     duracoes = [0, *(int(ponto.duracao_minutos or 0) for ponto in candidatos)]
-    afinidades = [
-        0.0,
-        *(
-            pontuar_afinidade(
-                ponto.categoria,
-                interesses,
-                metrica_recomendacao,
-                peso_cosseno,
-            )
-            for ponto in candidatos
-        ),
-    ]
-    precos = [
-        0,
-        *(round(float(ponto.preco_estimado or 0) * 100) for ponto in candidatos),
-    ]
+    afinidades = [0.0, *(item.afinidade for item in ranking)]
+    valores = [Decimal(str(ponto.preco_estimado)) for ponto in candidatos]
+    soma_valores = sum(valores)
+    teto = min(Decimal(str(orcamento_maximo)), soma_valores)
+    # Preserva a precisão dos valores enquanto a soma couber nos inteiros do solver.
+    casas = min(
+        max(-valor.as_tuple().exponent for valor in [*valores, teto]),
+        16 - soma_valores.adjusted(),
+    )
+    precos = [0, *(
+        int(valor.scaleb(casas).to_integral_value(rounding=ROUND_CEILING))
+        for valor in valores
+    )]
+    orcamento = int(teto.scaleb(casas).to_integral_value(rounding=ROUND_FLOOR))
     matriz_otimizacao = (
         matriz.tempos_minutos
         if retornar_origem
@@ -165,7 +157,7 @@ def _criar_plano_otimizado(
         quantidade_paradas=quantidade_paradas,
         limite_minutos=tempo_disponivel_minutos,
         precos_centavos=precos,
-        orcamento_centavos=round(orcamento_maximo * 100),
+        orcamento_centavos=orcamento,
         peso_preferencias=peso_preferencias,
     )
 
@@ -188,7 +180,7 @@ def _criar_plano_otimizado(
 
     return PlanoRoteiro(
         atividades=atividades,
-        custo_total=sum(float(item.ponto.preco_estimado or 0) for item in atividades),
+        custo_total=float(sum(valores[indice - 1] for indice in rota[1:-1])),
         tempo_visitas=sum(int(item.ponto.duracao_minutos or 0) for item in atividades),
         tempo_deslocamentos=(
             sum(item.tempo_deslocamento for item in atividades)
@@ -206,15 +198,24 @@ def planejar_roteiro(
     coordenadas: dict[UUID, tuple[float, float]],
     quantidade_paradas: int | None = None,
     origem: tuple[float, float] | None = None,
-    peso_preferencias: float = 0.8,
-    usar_matriz_viaria: bool = True,
+    peso_preferencias: float | None = None,
+    usar_matriz_viaria: bool = False,
     metrica_recomendacao: str = "cosseno",
     peso_cosseno: float = 0.7,
     retornar_origem: bool = False,
 ) -> PlanoRoteiro:
-    if quantidade_paradas is None:
+    pontos_validos = [
+        ponto for ponto in pontos
+        if ponto.id in coordenadas and nome_poi_e_util(ponto.nome)
+    ]
+    if (
+        quantidade_paradas is None
+        and origem is None
+        and peso_preferencias is None
+        and not usar_matriz_viaria
+    ):
         return _criar_plano_guloso(
-            pontos,
+            pontos_validos,
             orcamento_maximo,
             tempo_disponivel_minutos,
             interesses,
@@ -223,14 +224,14 @@ def planejar_roteiro(
             peso_cosseno,
         )
     return _criar_plano_otimizado(
-        pontos,
+        pontos_validos,
         orcamento_maximo,
         tempo_disponivel_minutos,
         interesses,
         coordenadas,
         quantidade_paradas,
         origem,
-        peso_preferencias,
+        0.8 if peso_preferencias is None else peso_preferencias,
         usar_matriz_viaria,
         metrica_recomendacao,
         peso_cosseno,

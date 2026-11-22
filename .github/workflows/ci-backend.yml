@@ -7,6 +7,7 @@ on:
       - 'infra/**'
       - 'docker-compose.yml'
       - '.github/workflows/ci-backend.yml'
+      - '.github/workflows/cd-backend.yml'
   push:
     branches: [develop, release, main]
     paths:
@@ -14,6 +15,7 @@ on:
       - 'infra/**'
       - 'docker-compose.yml'
       - '.github/workflows/ci-backend.yml'
+      - '.github/workflows/cd-backend.yml'
 
 permissions:
   contents: read
@@ -56,18 +58,7 @@ jobs:
           python -m pip install -r requirements-dev.txt
 
       - name: Build and start PostgreSQL
-        run: docker compose up -d --build
-
-      - name: Wait for PostgreSQL
-        run: |
-          for _ in {1..30}; do
-            if docker exec nextrip_db pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"; then
-              exit 0
-            fi
-            sleep 2
-          done
-          docker compose logs db
-          exit 1
+        run: docker compose up -d --build --wait db
 
       - name: Prepare test database
         run: |
@@ -80,6 +71,7 @@ jobs:
         run: |
           python -m alembic upgrade head
           python -m alembic -c alembic_test.ini upgrade head
+          python -m alembic check
 
       - name: Compile application
         working-directory: backend
@@ -93,6 +85,13 @@ jobs:
         working-directory: backend
         run: python -m pytest tests -q --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml --cov-fail-under=90
 
+      - name: Build and verify the API container
+        run: |
+          docker compose up -d --build --wait api
+          curl --fail --silent --show-error http://localhost:8088/health
+          curl --fail --silent --show-error http://localhost:8088/health/db
+          curl --fail --silent --show-error --output /dev/null http://localhost:8088/docs
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -102,10 +101,18 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-      - name: Show database logs on failure
+      - name: Show service logs on failure
         if: failure()
-        run: docker compose logs db
+        run: docker compose logs
 
       - name: Stop services
         if: always()
         run: docker compose down -v
+
+  publish-backend:
+    needs: validate-backend
+    if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/cd-backend.yml

@@ -20,7 +20,7 @@ def _otimizar_rota_portatil(
     matriz_minutos: list[list[int]],
     duracoes_minutos: list[int],
     afinidades: list[float],
-    quantidade_paradas: int,
+    quantidade_paradas: int | None,
     limite_minutos: int,
     precos_centavos: list[int],
     orcamento_centavos: int,
@@ -31,8 +31,10 @@ def _otimizar_rota_portatil(
     inicio = time.monotonic()
     estados = [([0], frozenset(), 0, 0, 0.0)]
     limite_estados = 5_000
+    limite_paradas = quantidade_paradas or (len(matriz_minutos) - 1)
+    melhor = None
 
-    for _ in range(quantidade_paradas):
+    for profundidade in range(1, limite_paradas + 1):
         proximos = []
         for rota, usados, tempo_atual, custo_atual, pontuacao in estados:
             origem = rota[-1]
@@ -45,52 +47,57 @@ def _otimizar_rota_portatil(
                     + duracoes_minutos[destino]
                 )
                 novo_custo = custo_atual + precos_centavos[destino]
-                if (
-                    novo_tempo + matriz_minutos[destino][0] > limite_minutos
-                    or novo_custo > orcamento_centavos
-                ):
+                if novo_tempo > limite_minutos or novo_custo > orcamento_centavos:
                     continue
                 deslocamento_relativo = (
                     matriz_minutos[origem][destino] / max(1, limite_minutos)
                 )
                 nova_pontuacao = (
                     pontuacao
-                    + peso_preferencias * afinidades[destino]
+                    + peso_preferencias * afinidades[destino] / limite_paradas
                     - (1 - peso_preferencias) * deslocamento_relativo
                 )
+                nova_rota = [*rota, destino]
                 proximos.append((
-                    [*rota, destino],
+                    nova_rota,
                     usados | {destino},
                     novo_tempo,
                     novo_custo,
                     nova_pontuacao,
                 ))
+                tempo_retorno = matriz_minutos[destino][0]
+                if (
+                    (quantidade_paradas is None or profundidade == quantidade_paradas)
+                    and novo_tempo + tempo_retorno <= limite_minutos
+                ):
+                    pontuacao_final = nova_pontuacao - (
+                        (1 - peso_preferencias) * tempo_retorno / limite_minutos
+                    )
+                    candidato = (
+                        -profundidade, -pontuacao_final, novo_tempo + tempo_retorno,
+                        novo_custo, nova_rota,
+                    )
+                    if melhor is None or candidato < melhor:
+                        melhor = candidato
             if time.monotonic() - inicio >= max(1, segundos):
                 break
         if not proximos:
-            raise RotaInviavelError(
-                "Nenhuma rota atende simultaneamente ao tempo, orçamento e número de paradas."
-            )
+            break
         proximos.sort(key=lambda estado: (-estado[4], estado[2], estado[3], estado[0]))
         estados = proximos[:limite_estados]
 
-    melhor = min(
-        estados,
-        key=lambda estado: (
-            -estado[4],
-            estado[2] + matriz_minutos[estado[0][-1]][0],
-            estado[3],
-            estado[0],
-        ),
-    )
-    return [*melhor[0], 0]
+    if melhor is None:
+        raise RotaInviavelError(
+            "Nenhuma rota atende simultaneamente ao tempo, orçamento e número de paradas."
+        )
+    return [*melhor[-1], 0]
 
 
 def otimizar_rota(
     matriz_minutos: list[list[int]],
     duracoes_minutos: list[int],
     afinidades: list[float],
-    quantidade_paradas: int,
+    quantidade_paradas: int | None,
     limite_minutos: int,
     precos_centavos: list[int] | None = None,
     orcamento_centavos: int | None = None,
@@ -101,7 +108,7 @@ def otimizar_rota(
     tamanho = len(matriz_minutos)
     if len(duracoes_minutos) != tamanho or len(afinidades) != tamanho:
         raise ValueError("Durações e afinidades devem corresponder à matriz.")
-    if not 1 <= quantidade_paradas < tamanho:
+    if quantidade_paradas is not None and not 1 <= quantidade_paradas < tamanho:
         raise ValueError("Quantidade de paradas inválida.")
     if limite_minutos <= 0 or not 0 <= peso_preferencias <= 1:
         raise ValueError("Parâmetros de otimização inválidos.")
@@ -168,8 +175,10 @@ def otimizar_rota(
         return int(no(origem_indice) != 0)
 
     visitas_indice = routing.RegisterTransitCallback(contar_visita)
-    routing.AddDimension(visitas_indice, 0, quantidade_paradas, True, "NumeroVisitas")
-    routing.GetDimensionOrDie("NumeroVisitas").CumulVar(routing.End(0)).SetValue(quantidade_paradas)
+    limite_paradas = quantidade_paradas or (tamanho - 1)
+    routing.AddDimension(visitas_indice, 0, limite_paradas, True, "NumeroVisitas")
+    minimo_paradas = quantidade_paradas or 1
+    routing.GetDimensionOrDie("NumeroVisitas").CumulVar(routing.End(0)).SetMin(minimo_paradas)
 
     if precos_centavos is not None and orcamento_centavos is not None:
         def preco(origem_indice: int) -> int:
@@ -180,11 +189,11 @@ def otimizar_rota(
 
     for indice in range(1, tamanho):
         afinidade = max(0.0, min(1.0, afinidades[indice]))
-        penalidade = 2 * escala + round(escala * peso_preferencias * afinidade / quantidade_paradas)
+        penalidade = 2 * escala + round(escala * peso_preferencias * afinidade / limite_paradas)
         routing.AddDisjunction([manager.NodeToIndex(indice)], penalidade)
 
     busca = pywrapcp.DefaultRoutingSearchParameters()
-    busca.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PARALLEL_CHEAPEST_INSERTION
+    busca.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
     busca.local_search_metaheuristic = routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
     busca.time_limit.seconds = max(1, segundos)
 
