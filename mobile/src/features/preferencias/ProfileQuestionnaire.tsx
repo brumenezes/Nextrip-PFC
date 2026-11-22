@@ -15,6 +15,7 @@ import {
   TRAVEL_CURRENCIES,
   type TravelCurrency,
 } from './currency-storage';
+import { convertCurrency, formatRateToBrl, getExchangeRates } from './exchange-rates';
 import { createPreferences, updatePreferences } from './service';
 import type { Preferences } from './types';
 
@@ -38,11 +39,19 @@ export function ProfileQuestionnaire({
   const [budget, setBudget] = useState(
     () => preferences ? String(preferences.orcamento_maximo) : '',
   );
-  const [selectedCurrency, setSelectedCurrency] = useState<TravelCurrency | null>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState<TravelCurrency | null>(
+    () => preferences ? 'BRL' : null,
+  );
   const currencyQuery = useQuery({
     queryKey: ['preferences-currency', userId],
     queryFn: () => getPreferredCurrency(userId!),
     enabled: Boolean(userId),
+  });
+  const exchangeRatesQuery = useQuery({
+    queryKey: ['exchange-rates', 'BRL'],
+    queryFn: getExchangeRates,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
   });
   const currency = selectedCurrency ?? currencyQuery.data ?? 'BRL';
   const normalizedBudget = useMemo(() => Number(budget.replace(',', '.')), [budget]);
@@ -54,8 +63,16 @@ export function ProfileQuestionnaire({
   const mutation = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error('Não foi possível identificar sua conta.');
+      if (currency !== 'BRL' && !exchangeRatesQuery.data) {
+        throw new Error('A cotação está indisponível. Tente novamente ou selecione Real.');
+      }
       const input = {
-        orcamento_maximo: normalizedBudget,
+        orcamento_maximo: convertCurrency(
+          normalizedBudget,
+          currency,
+          'BRL',
+          exchangeRatesQuery.data,
+        ),
         interesses: selectedInterests,
       };
       const savedPreferences = editing
@@ -78,6 +95,20 @@ export function ProfileQuestionnaire({
         ? current.filter((interest) => interest !== value)
         : [...current, value],
     );
+  }
+
+  function selectCurrency(nextCurrency: TravelCurrency) {
+    if (nextCurrency === currency) return;
+    if (validBudget && (currency === 'BRL' || exchangeRatesQuery.data)) {
+      const converted = convertCurrency(
+        normalizedBudget,
+        currency,
+        nextCurrency,
+        exchangeRatesQuery.data,
+      );
+      setBudget(String(Number(converted.toFixed(2))));
+    }
+    setSelectedCurrency(nextCurrency);
   }
 
   return (
@@ -187,7 +218,7 @@ export function ProfileQuestionnaire({
                       key={option.code}
                       accessibilityRole="radio"
                       accessibilityState={{ selected }}
-                      onPress={() => setSelectedCurrency(option.code)}
+                      onPress={() => selectCurrency(option.code)}
                       style={({ pressed }) => [
                         styles.currencyOption,
                         selected && styles.currencyOptionSelected,
@@ -207,6 +238,9 @@ export function ProfileQuestionnaire({
                   );
                 })}
               </View>
+              <Text style={styles.currencyRate}>
+                {formatRateToBrl(currency, exchangeRatesQuery.data)}
+              </Text>
             </View>
             <Input
               label="Valor diário"
@@ -306,5 +340,6 @@ const styles = StyleSheet.create({
   currencySymbol: { ...typography.title, color: colors.primary },
   currencyLabel: { ...typography.caption, color: colors.textSecondary, fontSize: 11 },
   currencyTextSelected: { color: colors.white },
+  currencyRate: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
   error: { ...typography.caption, color: colors.error, textAlign: 'center' },
 });

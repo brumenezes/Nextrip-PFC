@@ -4,17 +4,32 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AttractionMap, Button, Card, CategoryBadge, FeedbackState, Loading, Screen } from '@/components';
+import { useAuth } from '@/auth/AuthProvider';
 import { colors, radii, spacing, typography } from '@/design-system';
 import { getCategoryPresentation } from '@/features/pontos-interesse/categories';
 import { getPointOfInterest } from '@/features/pontos-interesse/service';
-import { formatAdmissionPrice } from '@/utils/formatters';
+import { getPreferredCurrency } from '@/features/preferencias/currency-storage';
+import { getExchangeRates } from '@/features/preferencias/exchange-rates';
+import { formatBrlInCurrency } from '@/utils/formatters';
 
 export default function AttractionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { userId } = useAuth();
   const query = useQuery({
     queryKey: ['point-of-interest', id],
     queryFn: () => getPointOfInterest(id!),
     enabled: Boolean(id),
+  });
+  const currencyQuery = useQuery({
+    queryKey: ['preferences-currency', userId],
+    queryFn: () => getPreferredCurrency(userId!),
+    enabled: Boolean(userId),
+  });
+  const exchangeRatesQuery = useQuery({
+    queryKey: ['exchange-rates', 'BRL'],
+    queryFn: getExchangeRates,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
   });
 
   async function openMap() {
@@ -47,6 +62,10 @@ export default function AttractionDetailsScreen() {
 
   const point = query.data;
   const category = getCategoryPresentation(point.categoria);
+  const currency = currencyQuery.data ?? 'BRL';
+  const admissionPrice = point.preco_estimado === 0
+    ? 'Entrada gratuita'
+    : formatBrlInCurrency(point.preco_estimado, currency, exchangeRatesQuery.data);
 
   return (
     <Screen scroll contentStyle={styles.screen}>
@@ -69,7 +88,7 @@ export default function AttractionDetailsScreen() {
       <View style={styles.metrics}>
         <Card style={styles.metricCard}>
           <Ionicons name="ticket-outline" size={22} color={colors.actionPressed} />
-          <Text style={styles.metricValue}>{formatAdmissionPrice(point.preco_estimado)}</Text>
+          <Text style={styles.metricValue}>{admissionPrice}</Text>
         </Card>
         <Card style={styles.metricCard}>
           <Ionicons name="time-outline" size={22} color={colors.secondary} />

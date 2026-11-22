@@ -19,8 +19,9 @@ import { getCategoryPresentation } from '@/features/pontos-interesse/categories'
 import { listPointsOfInterest } from '@/features/pontos-interesse/service';
 import { ProfileQuestionnaire } from '@/features/preferencias/ProfileQuestionnaire';
 import { getPreferredCurrency } from '@/features/preferencias/currency-storage';
+import { getExchangeRates } from '@/features/preferencias/exchange-rates';
 import { getPreferences } from '@/features/preferencias/service';
-import { formatCurrency } from '@/utils/formatters';
+import { formatBrlInCurrency } from '@/utils/formatters';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -63,6 +64,12 @@ export default function HomeScreen() {
     queryKey: ['preferences-currency', userId],
     queryFn: () => getPreferredCurrency(userId!),
     enabled: Boolean(userId),
+  });
+  const exchangeRatesQuery = useQuery({
+    queryKey: ['exchange-rates', 'BRL'],
+    queryFn: getExchangeRates,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
   });
   const featuredPoints = pointsQuery.data?.slice(0, 3) ?? [];
 
@@ -144,9 +151,10 @@ export default function HomeScreen() {
             <View style={styles.profileText}>
               <Text style={styles.profileCaption}>Orçamento diário</Text>
               <Text style={styles.profileValue}>
-                {formatCurrency(
+                {formatBrlInCurrency(
                   preferencesQuery.data?.orcamento_maximo ?? null,
                   currencyQuery.data ?? 'BRL',
+                  exchangeRatesQuery.data,
                 )}
               </Text>
             </View>

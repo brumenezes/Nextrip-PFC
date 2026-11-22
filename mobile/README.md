@@ -113,6 +113,6 @@ O cliente HTTP aplica timeout, serializa JSON, normaliza erros do FastAPI e adic
 - Atividades de um roteiro não incluem coordenadas; mapas exigiriam consultas adicionais.
 - Roteiros não podem ser editados, reordenados, concluídos ou excluídos pela API atual.
 - Listas não possuem paginação.
-- A API ainda não recebe o código da moeda; por isso o app limita o orçamento a BRL até que o contrato seja ampliado.
+- A API ainda recebe valores somente em BRL. O app consulta taxas de referência da Frankfurter, converte BRL, EUR, GBP e USD antes do envio e apresenta os valores na moeda escolhida. Se a cotação estiver indisponível, moedas estrangeiras ficam bloqueadas para evitar valores incorretos.
 
 Consulte `../ANALISE_TECNICA_FRONTEND.md` para o contrato completo e as regras de negócio.

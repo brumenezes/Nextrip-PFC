@@ -8,11 +8,20 @@ import { useAuth } from '@/auth/AuthProvider';
 import { Button, Card, FeedbackState, Loading, Screen } from '@/components';
 import { colors, radii, spacing, typography } from '@/design-system';
 import { getPreferredCurrency, type TravelCurrency } from '@/features/preferencias/currency-storage';
+import { getExchangeRates, type ExchangeRates } from '@/features/preferencias/exchange-rates';
 import { listItineraries } from '@/features/roteiros/service';
 import type { ItinerarySummary } from '@/features/roteiros/types';
-import { formatCivilDate, formatCurrency } from '@/utils/formatters';
+import { formatBrlInCurrency, formatCivilDate } from '@/utils/formatters';
 
-function ItineraryCard({ itinerary, currency }: { itinerary: ItinerarySummary; currency: TravelCurrency }) {
+function ItineraryCard({
+  itinerary,
+  currency,
+  exchangeRates,
+}: {
+  itinerary: ItinerarySummary;
+  currency: TravelCurrency;
+  exchangeRates?: ExchangeRates;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -32,7 +41,7 @@ function ItineraryCard({ itinerary, currency }: { itinerary: ItinerarySummary; c
               ? 'Passeio de um dia'
               : `Até ${formatCivilDate(itinerary.data_fim)}`}
           </Text>
-          <Text style={styles.cost}>{formatCurrency(itinerary.custo_total_estimado, currency)}</Text>
+          <Text style={styles.cost}>{formatBrlInCurrency(itinerary.custo_total_estimado, currency, exchangeRates)}</Text>
         </View>
         <View style={styles.chevron}>
           <Ionicons name="chevron-forward" size={20} color={colors.actionPressed} />
@@ -51,6 +60,12 @@ export default function ItinerariesScreen() {
     enabled: Boolean(userId),
   });
   const currency = currencyQuery.data ?? 'BRL';
+  const exchangeRatesQuery = useQuery({
+    queryKey: ['exchange-rates', 'BRL'],
+    queryFn: getExchangeRates,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
+  });
 
   if (query.isLoading) return <Screen><Loading message="Carregando roteiros…" /></Screen>;
 
@@ -88,7 +103,9 @@ export default function ItinerariesScreen() {
         <FlatList
           data={query.data}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <ItineraryCard itinerary={item} currency={currency} />}
+          renderItem={({ item }) => (
+            <ItineraryCard itinerary={item} currency={currency} exchangeRates={exchangeRatesQuery.data} />
+          )}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         />

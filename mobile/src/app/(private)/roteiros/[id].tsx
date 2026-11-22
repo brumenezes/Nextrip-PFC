@@ -7,9 +7,10 @@ import { useAuth } from '@/auth/AuthProvider';
 import { Card, CategoryBadge, FeedbackState, Loading, Screen } from '@/components';
 import { colors, radii, spacing, typography } from '@/design-system';
 import { getPreferredCurrency } from '@/features/preferencias/currency-storage';
+import { getExchangeRates } from '@/features/preferencias/exchange-rates';
 import { getItinerary } from '@/features/roteiros/service';
 import type { ItineraryActivity } from '@/features/roteiros/types';
-import { formatCivilDate, formatCurrency } from '@/utils/formatters';
+import { formatBrlInCurrency, formatCivilDate } from '@/utils/formatters';
 
 function formatDistance(meters: number) {
   if (meters < 1000) return `${Math.round(meters)} m`;
@@ -72,6 +73,12 @@ export default function ItineraryDetailsScreen() {
     queryFn: () => getPreferredCurrency(userId!),
     enabled: Boolean(userId),
   });
+  const exchangeRatesQuery = useQuery({
+    queryKey: ['exchange-rates', 'BRL'],
+    queryFn: getExchangeRates,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
+  });
 
   if (query.isLoading) return <Screen><Loading message="Carregando roteiro…" /></Screen>;
 
@@ -113,7 +120,9 @@ export default function ItineraryDetailsScreen() {
       <View style={styles.summaryGrid}>
         <Card style={styles.summaryCard}>
           <Ionicons name="ticket-outline" size={22} color={colors.actionPressed} />
-          <Text style={styles.summaryValue}>{formatCurrency(itinerary.custo_total_estimado, currency)}</Text>
+          <Text style={styles.summaryValue}>
+            {formatBrlInCurrency(itinerary.custo_total_estimado, currency, exchangeRatesQuery.data)}
+          </Text>
           <Text style={styles.summaryLabel}>Custo estimado</Text>
         </Card>
         <Card style={styles.summaryCard}>

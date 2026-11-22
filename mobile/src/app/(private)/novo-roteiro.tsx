@@ -22,9 +22,15 @@ import {
   TRAVEL_CURRENCIES,
   type TravelCurrency,
 } from '@/features/preferencias/currency-storage';
+import {
+  convertCurrency,
+  formatRateToBrl,
+  getExchangeRates,
+  type ExchangeRates,
+} from '@/features/preferencias/exchange-rates';
 import { generateItinerary } from '@/features/roteiros/service';
 import type { GeneratedItinerary } from '@/features/roteiros/types';
-import { formatCurrency } from '@/utils/formatters';
+import { formatBrlInCurrency } from '@/utils/formatters';
 
 const DURATIONS = [
   { value: 120, label: '2 horas' },
@@ -51,7 +57,15 @@ function hojeCivilBrasileiro() {
   return `${dia}/${mes}/${ano}`;
 }
 
-function Resultado({ roteiro, currency }: { roteiro: GeneratedItinerary; currency: TravelCurrency }) {
+function Resultado({
+  roteiro,
+  currency,
+  exchangeRates,
+}: {
+  roteiro: GeneratedItinerary;
+  currency: TravelCurrency;
+  exchangeRates?: ExchangeRates;
+}) {
   return (
     <View style={styles.resultado}>
       <View style={styles.successIcon}>
@@ -59,7 +73,7 @@ function Resultado({ roteiro, currency }: { roteiro: GeneratedItinerary; currenc
       </View>
       <Text style={styles.resultadoTitulo}>Roteiro criado</Text>
       <Text style={styles.resumo}>
-        {roteiro.tempo_total_roteiro} min · {formatCurrency(roteiro.custo_total_estimado, currency)}
+        {roteiro.tempo_total_roteiro} min · {formatBrlInCurrency(roteiro.custo_total_estimado, currency, exchangeRates)}
       </Text>
       {roteiro.atividades.map((atividade) => (
         <Card key={atividade.poi_id} style={styles.atividade}>
@@ -67,7 +81,7 @@ function Resultado({ roteiro, currency }: { roteiro: GeneratedItinerary; currenc
           <View style={styles.atividadeTexto}>
             <Text style={styles.atividadeNome}>{atividade.nome}</Text>
             <Text style={styles.atividadeDetalhe}>
-              {atividade.duracao_minutos} min · {formatCurrency(atividade.preco_estimado, currency)}
+              {atividade.duracao_minutos} min · {formatBrlInCurrency(atividade.preco_estimado, currency, exchangeRates)}
             </Text>
           </View>
         </Card>
@@ -118,11 +132,19 @@ export default function NewItineraryScreen() {
     queryFn: () => getPreferredCurrency(userId!),
     enabled: Boolean(userId),
   });
+  const exchangeRatesQuery = useQuery({
+    queryKey: ['exchange-rates', 'BRL'],
+    queryFn: getExchangeRates,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
+  });
   const currency = selectedCurrency ?? currencyQuery.data ?? 'BRL';
   const preferenceWeight = OPTIMIZATION_MODES.find((mode) => mode.value === optimizationMode)?.weight ?? 0.5;
   const {
     control,
+    getValues,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<GenerateItineraryForm>({
     resolver: zodResolver(generateItinerarySchema),
@@ -140,6 +162,21 @@ export default function NewItineraryScreen() {
       await queryClient.invalidateQueries({ queryKey: ['itineraries'] });
     },
   });
+
+  function selectCurrency(nextCurrency: TravelCurrency) {
+    if (nextCurrency === currency) return;
+    const currentBudget = Number(String(getValues('orcamento_maximo')).replace(',', '.'));
+    if (Number.isFinite(currentBudget) && (currency === 'BRL' || exchangeRatesQuery.data)) {
+      const converted = convertCurrency(
+        currentBudget,
+        currency,
+        nextCurrency,
+        exchangeRatesQuery.data,
+      );
+      setValue('orcamento_maximo', Number(converted.toFixed(2)), { shouldValidate: true });
+    }
+    setSelectedCurrency(nextCurrency);
+  }
 
   async function requestLocationPermission() {
     const permission = await Location.requestForegroundPermissionsAsync();
@@ -188,12 +225,23 @@ export default function NewItineraryScreen() {
   const submit = handleSubmit(async (values) => {
     setFormMessage(null);
     const dados = generateItinerarySchema.parse(values);
+    if (currency !== 'BRL' && !exchangeRatesQuery.data) {
+      setFormMessage('A cotação está indisponível. Tente novamente ou selecione Real.');
+      return;
+    }
+    const budgetInBrl = convertCurrency(
+      dados.orcamento_maximo,
+      currency,
+      'BRL',
+      exchangeRatesQuery.data,
+    );
     if (userId) {
       await setPreferredCurrency(userId, currency);
       queryClient.setQueryData(['preferences-currency', userId], currency);
     }
     mutation.mutate({
       ...dados,
+      orcamento_maximo: budgetInBrl,
       data_visita: toApiCivilDate(dados.data_visita),
       latitude_origem: origin?.latitude,
       longitude_origem: origin?.longitude,
@@ -216,7 +264,7 @@ export default function NewItineraryScreen() {
       </View>
 
       {resultado ? (
-        <Resultado roteiro={resultado} currency={currency} />
+        <Resultado roteiro={resultado} currency={currency} exchangeRates={exchangeRatesQuery.data} />
       ) : (
         <View style={styles.formFlow}>
           <View style={styles.intro}>
@@ -232,6 +280,38 @@ export default function NewItineraryScreen() {
           </View>
 
           <Card style={styles.form}>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Escolha a moeda</Text>
+              <View style={styles.currencyOptions}>
+                {TRAVEL_CURRENCIES.map((option) => {
+                  const selected = currency === option.code;
+                  return (
+                    <Pressable
+                      key={option.code}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected }}
+                      onPress={() => selectCurrency(option.code)}
+                      style={({ pressed }) => [
+                        styles.currencyOption,
+                        selected && styles.currencyOptionSelected,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <Text style={[styles.currencySymbol, selected && styles.currencyTextSelected]}>
+                        {option.symbol}
+                      </Text>
+                      <Text numberOfLines={1} style={[styles.currencyLabel, selected && styles.currencyTextSelected]}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={styles.fieldHint}>
+                {formatRateToBrl(currency, exchangeRatesQuery.data)}
+              </Text>
+            </View>
+
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Como devemos montar seu roteiro?</Text>
               <View style={styles.choiceRow}>
@@ -371,32 +451,7 @@ export default function NewItineraryScreen() {
             />
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Quanto pretende gastar em reais?</Text>
-              <View style={styles.currencyOptions}>
-                {TRAVEL_CURRENCIES.map((option) => {
-                  const selected = currency === option.code;
-                  return (
-                    <Pressable
-                      key={option.code}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected }}
-                      onPress={() => setSelectedCurrency(option.code)}
-                      style={({ pressed }) => [
-                        styles.currencyOption,
-                        selected && styles.currencyOptionSelected,
-                        pressed && styles.pressed,
-                      ]}
-                    >
-                      <Text style={[styles.currencySymbol, selected && styles.currencyTextSelected]}>
-                        {option.symbol}
-                      </Text>
-                      <Text numberOfLines={1} style={[styles.currencyLabel, selected && styles.currencyTextSelected]}>
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <Text style={styles.fieldLabel}>Quanto pretende gastar?</Text>
               <Controller
                 control={control}
                 name="orcamento_maximo"
@@ -408,7 +463,7 @@ export default function NewItineraryScreen() {
                     onBlur={field.onBlur}
                     keyboardType="decimal-pad"
                     placeholder="Ex.: 150,00"
-                    hint="A API atualmente interpreta todos os valores em reais."
+                    hint="O valor será convertido para reais antes de gerar o roteiro."
                     error={errors.orcamento_maximo?.message}
                   />
                 )}

@@ -1,7 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-export type TravelCurrency = 'BRL';
+export type TravelCurrency = 'BRL' | 'EUR' | 'GBP' | 'USD';
 
 export const TRAVEL_CURRENCIES: readonly {
   code: TravelCurrency;
@@ -9,6 +9,9 @@ export const TRAVEL_CURRENCIES: readonly {
   symbol: string;
 }[] = [
   { code: 'BRL', label: 'Real', symbol: 'R$' },
+  { code: 'EUR', label: 'Euro', symbol: '€' },
+  { code: 'GBP', label: 'Libra', symbol: '£' },
+  { code: 'USD', label: 'Dólar', symbol: '$' },
 ];
 
 const webCurrencies = new Map<string, TravelCurrency>();

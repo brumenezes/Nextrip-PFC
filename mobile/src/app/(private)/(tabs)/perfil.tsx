@@ -10,8 +10,9 @@ import { Button, Card, CategoryBadge, FeedbackState, Loading, Screen } from '@/c
 import { colors, radii, spacing, typography } from '@/design-system';
 import { ProfileQuestionnaire } from '@/features/preferencias/ProfileQuestionnaire';
 import { getPreferredCurrency } from '@/features/preferencias/currency-storage';
+import { getExchangeRates } from '@/features/preferencias/exchange-rates';
 import { getPreferences } from '@/features/preferencias/service';
-import { formatCurrency } from '@/utils/formatters';
+import { formatBrlInCurrency } from '@/utils/formatters';
 
 export default function ProfileScreen() {
   const { userId, displayName, fullName, email, signOut } = useAuth();
@@ -25,6 +26,12 @@ export default function ProfileScreen() {
     queryKey: ['preferences-currency', userId],
     queryFn: () => getPreferredCurrency(userId!),
     enabled: Boolean(userId),
+  });
+  const exchangeRatesQuery = useQuery({
+    queryKey: ['exchange-rates', 'BRL'],
+    queryFn: getExchangeRates,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
   });
 
   if (!userId) {
@@ -114,9 +121,10 @@ export default function ProfileScreen() {
         <View style={styles.cardText}>
           <Text style={styles.cardLabel}>Orçamento diário</Text>
           <Text style={styles.budgetValue}>
-            {formatCurrency(
+            {formatBrlInCurrency(
               preferences?.orcamento_maximo ?? null,
               currencyQuery.data ?? 'BRL',
+              exchangeRatesQuery.data,
             )}
           </Text>
         </View>
