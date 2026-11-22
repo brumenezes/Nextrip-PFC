@@ -112,6 +112,7 @@ export default function NewItineraryScreen() {
   const [locationAction, setLocationAction] = React.useState<'current' | 'address' | null>(null);
   const [locationError, setLocationError] = React.useState<string | null>(null);
   const [returnToOrigin, setReturnToOrigin] = React.useState(false);
+  const [useRoadMatrix, setUseRoadMatrix] = React.useState(true);
   const currencyQuery = useQuery({
     queryKey: ['preferences-currency', userId],
     queryFn: () => getPreferredCurrency(userId!),
@@ -198,7 +199,7 @@ export default function NewItineraryScreen() {
       longitude_origem: origin?.longitude,
       retornar_origem: Boolean(origin && returnToOrigin),
       peso_preferencias: preferenceWeight,
-      usar_matriz_viaria: true,
+      usar_matriz_viaria: useRoadMatrix,
       metrica_recomendacao: 'hibrido',
       peso_cosseno: 0.7,
     });
@@ -313,6 +314,20 @@ export default function NewItineraryScreen() {
                   thumbColor={colors.white}
                 />
               </View>
+              <View style={styles.returnRow}>
+                <View style={styles.returnText}>
+                  <Text style={styles.returnTitle}>Usar rotas pelas ruas</Text>
+                  <Text style={styles.returnSubtitle}>
+                    Desative se o serviço de rotas estiver indisponível. O cálculo usará distâncias aproximadas.
+                  </Text>
+                </View>
+                <Switch
+                  value={useRoadMatrix}
+                  onValueChange={setUseRoadMatrix}
+                  trackColor={{ false: colors.border, true: colors.action }}
+                  thumbColor={colors.white}
+                />
+              </View>
             </View>
 
             <Controller
@@ -356,7 +371,7 @@ export default function NewItineraryScreen() {
             />
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Quanto pretende gastar?</Text>
+              <Text style={styles.fieldLabel}>Quanto pretende gastar em reais?</Text>
               <View style={styles.currencyOptions}>
                 {TRAVEL_CURRENCIES.map((option) => {
                   const selected = currency === option.code;
@@ -393,7 +408,7 @@ export default function NewItineraryScreen() {
                     onBlur={field.onBlur}
                     keyboardType="decimal-pad"
                     placeholder="Ex.: 150,00"
-                    hint="Valor máximo para as atrações do roteiro."
+                    hint="A API atualmente interpreta todos os valores em reais."
                     error={errors.orcamento_maximo?.message}
                   />
                 )}

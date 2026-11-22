@@ -27,7 +27,7 @@ jobs:
         working-directory: mobile
     env:
       CI: 'true'
-      EXPO_PUBLIC_API_URL: http://127.0.0.1:8000
+      EXPO_PUBLIC_API_URL: http://127.0.0.1:8088
 
     steps:
       - name: Checkout
@@ -36,7 +36,7 @@ jobs:
       - name: Configure Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
           cache-dependency-path: mobile/package-lock.json
 

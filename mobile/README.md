@@ -4,7 +4,7 @@ Aplicativo Android e iOS do Nextrip, construído com Expo, React Native e TypeSc
 
 ## Requisitos
 
-- Node.js 20 LTS (versão usada pelo CI do projeto e recomendada para desenvolvimento)
+- Node.js 24 (versão usada pelo CI do projeto)
 - npm
 - Expo Go em um dispositivo físico, ou Android Studio/Xcode para simuladores
 - backend Nextrip em execução
@@ -23,14 +23,16 @@ Edite `.env` e escolha a URL adequada:
 
 ```dotenv
 # Android Emulator
-EXPO_PUBLIC_API_URL=http://10.0.2.2:8000
+EXPO_PUBLIC_API_URL=http://10.0.2.2:8088
 
 # iOS Simulator
-EXPO_PUBLIC_API_URL=http://localhost:8000
+EXPO_PUBLIC_API_URL=http://localhost:8088
 
 # Dispositivo físico (mesma rede do computador)
-EXPO_PUBLIC_API_URL=http://192.168.x.x:8000
+EXPO_PUBLIC_API_URL=http://192.168.x.x:8088
 ```
+
+Essas URLs consideram a API iniciada pelo Docker Compose, que publica a porta `8088`. Se você executar o Uvicorn diretamente na porta padrão, use `8000`.
 
 Variáveis `EXPO_PUBLIC_*` são incorporadas ao bundle e não devem conter segredos. A URL é pública; tokens de sessão são mantidos no `expo-secure-store` no Android e iOS. Na execução Web, a sessão fica somente em memória e é encerrada ao recarregar a página, evitando persistir o token em armazenamento web inseguro.
 
@@ -41,7 +43,7 @@ cd ..\backend
 .\venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 0.0.0.0
 ```
 
-O computador e o aparelho devem estar na mesma rede, e a porta `8000` deve estar liberada no firewall.
+O computador e o aparelho devem estar na mesma rede, e a porta escolhida (`8088` com Compose ou `8000` com Uvicorn direto) deve estar liberada no firewall.
 
 ## Execução
 
@@ -98,6 +100,7 @@ O cliente HTTP aplica timeout, serializa JSON, normaliza erros do FastAPI e adic
 - Home autenticada: estrutura visual inicial, sem dados fictícios.
 - Explorar: listagem real de `GET /pontos-interesse`, com atribuição OpenStreetMap.
 - Roteiros: listagem real e geração otimizada por `POST /roteiros/gerar`.
+- Geração: origem, retorno ao ponto inicial e matriz viária configuráveis na tela.
 - Perfil: consulta, cadastro e atualização das preferências reais do usuário.
 - Logout: remove apenas a sessão local, pois o backend não oferece logout/revogação.
 
@@ -110,6 +113,6 @@ O cliente HTTP aplica timeout, serializa JSON, normaliza erros do FastAPI e adic
 - Atividades de um roteiro não incluem coordenadas; mapas exigiriam consultas adicionais.
 - Roteiros não podem ser editados, reordenados, concluídos ou excluídos pela API atual.
 - Listas não possuem paginação.
-- A origem por geolocalização já é aceita pelo backend, mas a permissão e a experiência de localização ainda não foram adicionadas ao app.
+- A API ainda não recebe o código da moeda; por isso o app limita o orçamento a BRL até que o contrato seja ampliado.
 
 Consulte `../ANALISE_TECNICA_FRONTEND.md` para o contrato completo e as regras de negócio.
