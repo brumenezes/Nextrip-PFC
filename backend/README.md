@@ -52,7 +52,7 @@ Na raiz do repositório, copie o arquivo `.env.example` para `.env`:
 Copy-Item .env.example .env
 ```
 
-Abra o arquivo `.env` e substitua `SUBSTITUA_PELA_SENHA` por uma senha local.
+Abra o arquivo `.env`, defina uma senha local para o PostgreSQL e gere um valor aleatório para `JWT_SECRET_KEY`.
 
 Não compartilhe nem versione esse arquivo.
 
@@ -65,6 +65,7 @@ docker compose up -d --build
 ```
 
 O PostgreSQL será disponibilizado na porta `5433` do computador.
+A API do Compose atende em `http://localhost:8088`. Aplique as migrações antes de usar as rotas que consultam as tabelas da aplicação.
 
 O banco principal será chamado `nextrip_db`.
 
@@ -220,11 +221,12 @@ O contrato anterior de `POST /roteiros/gerar` continua válido. Os seguintes cam
 - `quantidade_paradas` (1 a 19): quantidade exata de atrações;
 - `latitude_origem` e `longitude_origem`: devem ser enviados juntos;
 - `peso_preferencias` (0 a 1): equilíbrio entre afinidade e deslocamento;
-- `usar_matriz_viaria`: tenta OSRM e faz fallback automático para Haversine.
+- `usar_matriz_viaria` (padrão `false`): quando `true`, envia as coordenadas ao serviço OSRM configurado e usa Haversine se o serviço falhar;
 - `metrica_recomendacao`: `cosseno` (compatível) ou `hibrido` (cosseno + magnitude);
-- `peso_cosseno` (0 a 1): composição da métrica híbrida.
+- `peso_cosseno` (0 a 1): composição da métrica híbrida;
+- `retornar_origem` (padrão `false`): inclui a volta no tempo total de deslocamentos e exige origem completa.
 
-Sem `quantidade_paradas`, o endpoint preserva o modo guloso compatível, agora ordenado pela afinidade de cosseno da POC 1.
+O payload antigo usa o modo guloso. Origem, peso de preferências explícito ou matriz viária ativam o otimizador, que busca o maior número viável de paradas se `quantidade_paradas` for omitida. A busca usa até 19 candidatos. O trecho de retorno entra nos totais da geração. Os roteiros salvos guardam os deslocamentos de chegada a cada atividade.
 
 ### Catálogo OpenStreetMap das POCs
 

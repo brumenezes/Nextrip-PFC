@@ -31,6 +31,7 @@ __pycache__/
 # Arquivos gerados pelos testes
 .coverage
 .coverage.*
+coverage.xml
 htmlcov/
 .pytest_cache/
 

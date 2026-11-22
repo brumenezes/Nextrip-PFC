@@ -218,12 +218,93 @@ def test_gerar_roteiro_inclui_retorno_ao_ponto_de_partida(ambiente_roteiros):
         resultado["tempo_total_visitas"]
         + resultado["tempo_total_deslocamentos"]
     )
+    assert resultado["tempo_total_roteiro"] <= dados["tempo_disponivel_minutos"]
 
 
-def test_rejeitar_origem_incompleta(ambiente_roteiros):
+@pytest.mark.parametrize("campo, valor", [
+    ("latitude_origem", -23.5505),
+    ("longitude_origem", -46.6333),
+    ("retornar_origem", True),
+])
+def test_rejeitar_origem_incompleta(ambiente_roteiros, campo, valor):
     cliente, banco, usuario = ambiente_roteiros
     dados = dados_roteiro_validos()
-    dados["latitude_origem"] = -23.5505
+    dados[campo] = valor
+
+    resposta = cliente.post("/roteiros/gerar", json=dados)
+
+    assert resposta.status_code == 422
+    banco.commit.assert_not_called()
+
+
+def test_gerar_roteiro_sem_quantidade_respeita_origem_e_retorno(ambiente_roteiros):
+    cliente, banco, _ = ambiente_roteiros
+    preparar_geracao(banco)
+    dados = dados_roteiro_validos()
+    dados.update(latitude_origem=-23.5505, longitude_origem=-46.6333)
+
+    aberta = cliente.post("/roteiros/gerar", json=dados)
+    fechada = cliente.post("/roteiros/gerar", json={**dados, "retornar_origem": True})
+
+    assert aberta.status_code == fechada.status_code == 201
+    rota_aberta, rota_fechada = aberta.json(), fechada.json()
+    for roteiro in (rota_aberta, rota_fechada):
+        assert roteiro["tempo_total_roteiro"] <= dados["tempo_disponivel_minutos"]
+        assert roteiro["atividades"][0]["tempo_deslocamento_previsto"] > 0
+        assert len(roteiro["atividades"]) == 2
+        assert roteiro["tempo_total_roteiro"] == (
+            roteiro["tempo_total_visitas"] + roteiro["tempo_total_deslocamentos"]
+        )
+    assert rota_aberta["tempo_total_deslocamentos"] == sum(
+        visita["tempo_deslocamento_previsto"] for visita in rota_aberta["atividades"]
+    )
+    assert rota_fechada["tempo_total_deslocamentos"] > sum(
+        visita["tempo_deslocamento_previsto"] for visita in rota_fechada["atividades"]
+    )
+
+    banco.commit.reset_mock()
+    dados["tempo_disponivel_minutos"] = 120
+    assert cliente.post("/roteiros/gerar", json=dados).status_code == 422
+    banco.commit.assert_not_called()
+
+
+def test_gerar_roteiro_legado_filtra_pois_genericos_e_sem_coordenadas(ambiente_roteiros):
+    cliente, banco, _ = ambiente_roteiros
+    museu, parque = preparar_geracao(banco)
+    parque.nome = "  PORTÃO  "
+    incompleto = criar_ponto("Casa sem localização", "Museu", 0, 20, 5)
+    banco.scalars.return_value.all.return_value.append(incompleto)
+
+    resposta = cliente.post("/roteiros/gerar", json=dados_roteiro_validos())
+
+    assert resposta.status_code == 201
+    assert [visita["poi_id"] for visita in resposta.json()["atividades"]] == [str(museu.id)]
+
+
+@pytest.mark.parametrize("peso, nome", [(0, "Parque"), (1, "Museu")])
+def test_peso_preferencias_sem_quantidade_altera_selecao(ambiente_roteiros, peso, nome):
+    cliente, banco, _ = ambiente_roteiros
+    preparar_geracao(banco)
+    dados = dados_roteiro_validos()
+    dados.update(
+        tempo_disponivel_minutos=140,
+        latitude_origem=-23.5874,
+        longitude_origem=-46.6576,
+        peso_preferencias=peso,
+    )
+
+    resposta = cliente.post("/roteiros/gerar", json=dados)
+
+    assert resposta.status_code == 201
+    assert [visita["nome"] for visita in resposta.json()["atividades"]] == [nome]
+
+
+def test_gerar_roteiro_otimizado_rejeita_soma_acima_do_orcamento(ambiente_roteiros):
+    cliente, banco, _ = ambiente_roteiros
+    museu, parque = preparar_geracao(banco)
+    museu.preco_estimado = parque.preco_estimado = 0.014
+    dados = dados_roteiro_validos()
+    dados.update(orcamento_maximo=0.02, quantidade_paradas=2)
 
     resposta = cliente.post("/roteiros/gerar", json=dados)
 
@@ -239,6 +320,13 @@ def test_rejeitar_origem_incompleta(ambiente_roteiros):
         ("orcamento_maximo", -1),
         ("orcamento_maximo", -0.01),
         ("data_visita", "data-invalida"),
+        ("peso_preferencias", -0.01),
+        ("peso_preferencias", 1.01),
+        ("peso_cosseno", -0.01),
+        ("peso_cosseno", 1.01),
+        ("metrica_recomendacao", "euclidiana"),
+        ("quantidade_paradas", 0),
+        ("quantidade_paradas", 20),
     ],
 )
 def test_rejeitar_dados_invalidos(

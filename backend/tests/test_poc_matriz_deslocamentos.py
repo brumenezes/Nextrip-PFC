@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import httpx
+import pytest
 
 from app.services.pocs.matriz_deslocamentos import (
     matriz_haversine,
@@ -74,3 +75,21 @@ def test_obter_matriz_osrm_com_origem_virtual():
     assert matriz.tempos_minutos == [[0, 0, 0], [0, 0, 1], [0, 2, 0]]
     assert matriz.distancias_metros[0] == [0.0, 0.0, 0.0]
 
+
+@pytest.mark.parametrize("distancias", [
+    [[0, -1], [1, 0]],
+    [[0, float("nan")], [1, 0]],
+    [None, [1, 0]],
+])
+def test_osrm_invalido_usa_fallback(distancias):
+    cliente = MagicMock()
+    cliente.get.return_value.json.return_value = {
+        "code": "Ok",
+        "durations": [[0, 60], [60, 0]],
+        "distances": distancias,
+    }
+
+    matriz = obter_matriz_deslocamentos(COORDENADAS, origem=None, cliente=cliente)
+
+    assert matriz.fonte == "haversine"
+    assert all(valor >= 0 for linha in matriz.distancias_metros for valor in linha)

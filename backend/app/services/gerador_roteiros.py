@@ -1,3 +1,4 @@
+from decimal import Decimal
 from uuid import UUID
 
 from app.models.domain_models import PontoDeInteresse
@@ -51,7 +52,8 @@ def selecionar_pontos_interesse(
     ]
 
     selecionados = []
-    custo_total = 0.0
+    custo_total = Decimal(0)
+    orcamento = Decimal(str(orcamento_maximo))
     tempo_total = 0
 
     for ponto in pontos_ordenados:
@@ -76,7 +78,7 @@ def selecionar_pontos_interesse(
                     distancia
                 )
 
-        novo_custo = custo_total + ponto.preco_estimado
+        novo_custo = custo_total + Decimal(str(ponto.preco_estimado))
 
         novo_tempo = (
             tempo_total
@@ -85,11 +87,11 @@ def selecionar_pontos_interesse(
         )
 
         if (
-            novo_custo <= orcamento_maximo
+            novo_custo <= orcamento
             and novo_tempo <= tempo_disponivel_minutos
         ):
             selecionados.append(ponto)
             custo_total = novo_custo
             tempo_total = novo_tempo
 
-    return selecionados, custo_total, tempo_total
+    return selecionados, float(custo_total), tempo_total

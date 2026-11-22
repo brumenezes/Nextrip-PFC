@@ -94,6 +94,8 @@ def matriz_osrm(
         if cliente_proprio:
             cliente.close()
 
+    if not isinstance(payload, dict):
+        raise RuntimeError("OSRM retornou uma resposta inválida.")
     if payload.get("code") != "Ok":
         raise RuntimeError(f"OSRM indisponível: {payload.get('message', payload.get('code'))}")
 
@@ -111,10 +113,20 @@ def matriz_osrm(
     tempos_convertidos: list[list[int]] = []
     distancias_convertidas: list[list[float]] = []
     for linha_duracoes, linha_distancias in zip(duracoes, distancias, strict=True):
-        if len(linha_duracoes) != tamanho or len(linha_distancias) != tamanho:
+        if (
+            not isinstance(linha_duracoes, list)
+            or not isinstance(linha_distancias, list)
+            or len(linha_duracoes) != tamanho
+            or len(linha_distancias) != tamanho
+        ):
             raise RuntimeError("OSRM retornou uma matriz incompatível.")
         if any(valor is None for valor in linha_duracoes + linha_distancias):
             raise RuntimeError("OSRM não encontrou rota entre todos os pontos.")
+        if any(
+            type(valor) not in (int, float) or not math.isfinite(valor) or valor < 0
+            for valor in linha_duracoes + linha_distancias
+        ):
+            raise RuntimeError("OSRM retornou um deslocamento inválido.")
 
         tempos_convertidos.append([
             0 if valor == 0 else max(1, math.ceil(float(valor) / 60))
@@ -135,7 +147,7 @@ def obter_matriz_deslocamentos(
         if usar_osrm and len(coordenadas) >= 2:
             try:
                 return _adicionar_origem_virtual(matriz_osrm(coordenadas, cliente))
-            except (httpx.HTTPError, RuntimeError, ValueError):
+            except (httpx.HTTPError, RuntimeError, ValueError, OverflowError):
                 pass
         return matriz_haversine(coordenadas, origem_virtual=True)
 
@@ -143,6 +155,6 @@ def obter_matriz_deslocamentos(
     if usar_osrm:
         try:
             return matriz_osrm(todas_coordenadas, cliente)
-        except (httpx.HTTPError, RuntimeError, ValueError):
+        except (httpx.HTTPError, RuntimeError, ValueError, OverflowError):
             pass
     return matriz_haversine(todas_coordenadas)
