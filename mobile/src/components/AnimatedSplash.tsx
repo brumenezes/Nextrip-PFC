@@ -95,7 +95,7 @@ const WAYPOINT_START = FIRST_SEGMENT[0];
 const WAYPOINT_MIDDLE = FIRST_SEGMENT[3];
 const WAYPOINT_END = SECOND_SEGMENT[3];
 
-export function AnimatedSplash({ ready, minDuration = 2400, onFinish }: AnimatedSplashProps) {
+export function AnimatedSplash({ ready, minDuration = 6000, onFinish }: AnimatedSplashProps) {
   const { width, height } = useWindowDimensions();
   const scale = Math.max(width / VIEWBOX_WIDTH, height / VIEWBOX_HEIGHT);
   const offsetX = (width - VIEWBOX_WIDTH * scale) / 2;
@@ -266,7 +266,7 @@ export function AnimatedSplash({ ready, minDuration = 2400, onFinish }: Animated
           },
         ]}
       />
-      <Text style={[styles.brandName, { top: pointY(960), fontSize: 62 * scale, lineHeight: 76 * scale }]}>nextrip</Text>
+      <Text style={[styles.brandName, { top: pointY(960), fontSize: 62 * scale, lineHeight: 76 * scale }]}>Nextrip</Text>
 
       <Animated.View pointerEvents="none" style={[layer, { opacity: routeOpacity }]}>
         <Svg {...svgProps} style={layer}>

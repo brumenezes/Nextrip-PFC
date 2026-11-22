@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 
 import { AttractionMap, Button, Card, CategoryBadge, FeedbackState, Loading, Screen } from '@/components';
 import { useAuth } from '@/auth/AuthProvider';
@@ -15,6 +16,7 @@ import { formatBrlInCurrency } from '@/utils/formatters';
 export default function AttractionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userId } = useAuth();
+  const [mapExpanded, setMapExpanded] = useState(false);
   const query = useQuery({
     queryKey: ['point-of-interest', id],
     queryFn: () => getPointOfInterest(id!),
@@ -99,20 +101,34 @@ export default function AttractionDetailsScreen() {
       </View>
 
       <Card style={styles.locationCard}>
-        <AttractionMap
-          latitude={point.latitude}
-          longitude={point.longitude}
-          title={point.nome}
-          description={category.label}
-        />
-        <View style={styles.locationHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: mapExpanded }}
+          onPress={() => setMapExpanded((current) => !current)}
+          style={({ pressed }) => [styles.locationHeader, pressed && styles.pressed]}
+        >
           <Ionicons name="location-outline" size={24} color={colors.accent} />
           <View style={styles.locationText}>
-            <Text style={styles.locationTitle}>Localização</Text>
+            <Text style={styles.locationTitle}>{mapExpanded ? 'Ocultar mapa' : 'Ver mapa'}</Text>
             <Text style={styles.coordinates}>{point.latitude.toFixed(5)}, {point.longitude.toFixed(5)}</Text>
           </View>
-        </View>
-        <Button label="Abrir no mapa" variant="secondary" onPress={() => void openMap()} />
+          <Ionicons
+            name={mapExpanded ? 'chevron-up' : 'chevron-down'}
+            size={22}
+            color={colors.primary}
+          />
+        </Pressable>
+        {mapExpanded ? (
+          <>
+            <AttractionMap
+              latitude={point.latitude}
+              longitude={point.longitude}
+              title={point.nome}
+              description={category.label}
+            />
+            <Button label="Abrir no aplicativo de mapas" variant="secondary" onPress={() => void openMap()} />
+          </>
+        ) : null}
       </Card>
 
       {point.avaliacao_media !== null ? (
@@ -161,6 +177,7 @@ const styles = StyleSheet.create({
   locationText: { flex: 1, justifyContent: 'center' },
   locationTitle: { ...typography.label, color: colors.primary, textAlign: 'left' },
   coordinates: { ...typography.caption, color: colors.textSecondary, textAlign: 'left' },
+  pressed: { opacity: 0.75 },
   ratingCard: { width: '100%', flexDirection: 'row', justifyContent: 'center' },
   ratingValue: { ...typography.title, color: colors.primary },
   ratingLabel: { ...typography.caption, color: colors.textSecondary },

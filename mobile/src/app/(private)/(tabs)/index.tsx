@@ -50,7 +50,7 @@ function QuickAction({ icon, label, color, onPress }: QuickActionProps) {
 }
 
 export default function HomeScreen() {
-  const { userId, displayName } = useAuth();
+  const { userId, displayName, fullName } = useAuth();
   const preferencesQuery = useQuery({
     queryKey: ['preferences', userId],
     queryFn: () => getPreferences(userId!),
@@ -72,6 +72,7 @@ export default function HomeScreen() {
     retry: 1,
   });
   const featuredPoints = pointsQuery.data?.slice(0, 3) ?? [];
+  const firstName = (fullName ?? displayName)?.trim().split(/\s+/)[0] || null;
 
   if (preferencesQuery.isLoading) return <AppLoading />;
 
@@ -98,9 +99,9 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.greeting}>
-            {displayName ? `Olá, ${displayName}` : 'Olá!'}
+            {firstName ? `Olá, ${firstName}` : 'Olá!'}
           </Text>
-          <Text style={styles.headerSubtitle}>O que vamos descobrir hoje?</Text>
+          <Text style={styles.headerSubtitle}>O que você gostaria de fazer hoje?</Text>
         </View>
       </View>
 
