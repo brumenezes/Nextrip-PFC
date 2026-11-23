@@ -31,6 +31,7 @@ def calcular_distancia_metros(
         * sin(diferenca_lon / 2) ** 2
     )
 
+    a = min(1.0, a)
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
     return raio_terra * c

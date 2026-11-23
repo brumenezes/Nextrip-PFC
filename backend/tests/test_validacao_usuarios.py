@@ -19,6 +19,8 @@ def test_cadastro_usuario_valido(nome, email, senha):
         nome=nome,
         email=email,
         senha=senha,
+        aceita_termos=True,
+        aceita_privacidade=True,
     )
 
     assert usuario.nome == nome
@@ -42,6 +44,19 @@ def test_cadastro_usuario_invalido(nome, email, senha):
             nome=nome,
             email=email,
             senha=senha,
+            aceita_termos=True,
+            aceita_privacidade=True,
+        )
+
+
+def test_cadastro_exige_aceites_explicitos():
+    with pytest.raises(ValidationError):
+        UsuarioCreate(
+            nome="Ana",
+            email="ana@example.com",
+            senha="senha123",
+            aceita_termos=False,
+            aceita_privacidade=False,
         )
 
 
