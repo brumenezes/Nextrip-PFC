@@ -3,9 +3,10 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import date, datetime, timezone
 from sqlalchemy import func
 
+from app.core.privacy import PRIVACY_NOTICE_VERSION, TERMS_VERSION
 from app.models.domain_models import (
     Usuario,
     Preferencias,
@@ -46,7 +47,11 @@ def test_cadastrar_e_consultar_usuario_postgresql():
                         id=uuid4(),
                         nome="Usuario Integracao",
                         email=f"integracao-{uuid4()}@example.com",
-                        senha_hash="hash-ficticio"
+                        senha_hash="hash-ficticio",
+                        termos_versao=TERMS_VERSION,
+                        termos_aceitos_em=datetime.now(timezone.utc),
+                        privacidade_versao=PRIVACY_NOTICE_VERSION,
+                        privacidade_aceita_em=datetime.now(timezone.utc),
                     )
 
                     sessao.add(usuario)
@@ -200,7 +205,11 @@ def test_salvar_e_consultar_preferencias_postgresql():
                         id=uuid4(),
                         nome="Usuario Teste Preferencias",
                         email=f"preferencias-{uuid4()}@example.com",
-                        senha_hash="hash-ficticio"
+                        senha_hash="hash-ficticio",
+                        termos_versao=TERMS_VERSION,
+                        termos_aceitos_em=datetime.now(timezone.utc),
+                        privacidade_versao=PRIVACY_NOTICE_VERSION,
+                        privacidade_aceita_em=datetime.now(timezone.utc),
                     )
 
                     sessao.add(usuario)
@@ -256,7 +265,11 @@ def test_salvar_roteiro_com_atividades_postgresql():
                         id=uuid4(),
                         nome="Usuario Teste Roteiro",
                         email=f"roteiro-{uuid4()}@example.com",
-                        senha_hash="hash-ficticio"
+                        senha_hash="hash-ficticio",
+                        termos_versao=TERMS_VERSION,
+                        termos_aceitos_em=datetime.now(timezone.utc),
+                        privacidade_versao=PRIVACY_NOTICE_VERSION,
+                        privacidade_aceita_em=datetime.now(timezone.utc),
                     )
                     sessao.add(usuario)
                     sessao.flush()
