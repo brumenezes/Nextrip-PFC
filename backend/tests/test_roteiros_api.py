@@ -155,6 +155,82 @@ def test_gerar_roteiro_sem_atracoes_compativeis(
     banco.commit.assert_not_called()
 
 
+def test_gerar_roteiro_otimizado_com_quantidade_exata(ambiente_roteiros):
+    cliente, banco, usuario = ambiente_roteiros
+    preparar_geracao(banco)
+    dados = dados_roteiro_validos()
+    dados.update({
+        "quantidade_paradas": 1,
+        "usar_matriz_viaria": False,
+        "metrica_recomendacao": "hibrido",
+        "peso_cosseno": 0.7,
+    })
+
+    resposta = cliente.post("/roteiros/gerar", json=dados)
+
+    assert resposta.status_code == 201
+    resultado = resposta.json()
+    assert len(resultado["atividades"]) == 1
+    assert resultado["atividades"][0]["nome"] == "Museu"
+    assert resultado["tempo_total_roteiro"] <= dados["tempo_disponivel_minutos"]
+
+
+def test_gerar_roteiro_otimizado_considera_origem(ambiente_roteiros):
+    cliente, banco, usuario = ambiente_roteiros
+    preparar_geracao(banco)
+    dados = dados_roteiro_validos()
+    dados.update({
+        "quantidade_paradas": 1,
+        "latitude_origem": -23.5505,
+        "longitude_origem": -46.6333,
+        "usar_matriz_viaria": False,
+    })
+
+    resposta = cliente.post("/roteiros/gerar", json=dados)
+
+    assert resposta.status_code == 201
+    atividade = resposta.json()["atividades"][0]
+    assert atividade["tempo_deslocamento_previsto"] > 0
+    assert atividade["distancia_deslocamento_metros"] > 0
+
+
+def test_gerar_roteiro_inclui_retorno_ao_ponto_de_partida(ambiente_roteiros):
+    cliente, banco, usuario = ambiente_roteiros
+    preparar_geracao(banco)
+    dados = dados_roteiro_validos()
+    dados.update({
+        "quantidade_paradas": 1,
+        "latitude_origem": -23.5505,
+        "longitude_origem": -46.6333,
+        "usar_matriz_viaria": False,
+        "retornar_origem": True,
+    })
+
+    resposta = cliente.post("/roteiros/gerar", json=dados)
+
+    assert resposta.status_code == 201
+    resultado = resposta.json()
+    deslocamento_ate_atividade = resultado["atividades"][0][
+        "tempo_deslocamento_previsto"
+    ]
+    assert resultado["tempo_total_deslocamentos"] > deslocamento_ate_atividade
+    assert resultado["tempo_total_roteiro"] == (
+        resultado["tempo_total_visitas"]
+        + resultado["tempo_total_deslocamentos"]
+    )
+
+
+def test_rejeitar_origem_incompleta(ambiente_roteiros):
+    cliente, banco, usuario = ambiente_roteiros
+    dados = dados_roteiro_validos()
+    dados["latitude_origem"] = -23.5505
+
+    resposta = cliente.post("/roteiros/gerar", json=dados)
+
+    assert resposta.status_code == 422
+    banco.commit.assert_not_called()
+
+
 @pytest.mark.parametrize(
     "campo, valor",
     [
