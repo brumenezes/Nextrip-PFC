@@ -11,8 +11,8 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-nextrip_user}:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}@db:5432/${POSTGRES_DB:-nextrip_db}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no arquivo .env}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
-        CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8081,http://localhost:19006}
-        ENABLE_HSTS: ${ENABLE_HSTS:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8081,http://localhost:19006}
+      ENABLE_HSTS: ${ENABLE_HSTS:-false}
       OSRM_BASE_URL: ${OSRM_BASE_URL:-https://router.project-osrm.org}
 
     ports:
