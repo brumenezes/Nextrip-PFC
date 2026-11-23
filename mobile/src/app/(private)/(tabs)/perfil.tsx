@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { getErrorMessage } from '@/api/errors';
@@ -17,6 +17,9 @@ import { formatBrlInCurrency } from '@/utils/formatters';
 export default function ProfileScreen() {
   const { userId, displayName, fullName, email, signOut } = useAuth();
   const [editing, setEditing] = useState(false);
+  useFocusEffect(useCallback(() => {
+    setEditing(false);
+  }, []));
   const preferencesQuery = useQuery({
     queryKey: ['preferences', userId],
     queryFn: () => getPreferences(userId!),
@@ -142,6 +145,11 @@ export default function ProfileScreen() {
       </View>
 
       <View style={styles.actions}>
+        <Button
+          label="Editar dados"
+          variant="secondary"
+          onPress={() => router.push('/(private)/editar-dados')}
+        />
         <Button
           label="Refazer questionário"
           variant="secondary"

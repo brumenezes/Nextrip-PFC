@@ -2,7 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { Link, router } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { getErrorMessage } from '@/api/errors';
 import { sessionStorage } from '@/auth/session-storage';
@@ -14,7 +15,9 @@ import { createUser } from '@/features/usuarios/service';
 export default function RegisterScreen() {
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { nome: '', email: '', senha: '', confirmarSenha: '' },
+    defaultValues: {
+      nome: '', email: '', senha: '', confirmarSenha: '', aceita_termos: false, aceita_privacidade: false,
+    },
   });
   const mutation = useMutation({
     mutationFn: ({ confirmarSenha: _, ...input }: RegisterFormData) => createUser(input),
@@ -48,6 +51,35 @@ export default function RegisterScreen() {
         <Controller control={control} name="confirmarSenha" render={({ field: { onBlur, onChange, value } }) => (
           <Input label="Confirmar senha" placeholder="Repita sua senha" secureTextEntry autoComplete="new-password" value={value} onBlur={onBlur} onChangeText={onChange} error={errors.confirmarSenha?.message} />
         )} />
+        <Controller control={control} name="aceita_termos" render={({ field: { onChange, value } }) => (
+          <View>
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: value }}
+              onPress={() => onChange(!value)}
+              style={styles.consentRow}
+            >
+              <Ionicons name={value ? 'checkbox' : 'square-outline'} size={24} color={colors.actionPressed} />
+              <Text style={styles.consentText}>Li e aceito os Termos de Uso.</Text>
+            </Pressable>
+            {errors.aceita_termos ? <Text style={styles.consentError}>{errors.aceita_termos.message}</Text> : null}
+          </View>
+        )} />
+        <Controller control={control} name="aceita_privacidade" render={({ field: { onChange, value } }) => (
+          <View>
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: value }}
+              onPress={() => onChange(!value)}
+              style={styles.consentRow}
+            >
+              <Ionicons name={value ? 'checkbox' : 'square-outline'} size={24} color={colors.actionPressed} />
+              <Text style={styles.consentText}>Li o Aviso de Privacidade e entendi como meus dados serão tratados.</Text>
+            </Pressable>
+            {errors.aceita_privacidade ? <Text style={styles.consentError}>{errors.aceita_privacidade.message}</Text> : null}
+          </View>
+        )} />
+        <Link href="/(public)/termos" style={styles.termsLink}>Ler Termos e Aviso de Privacidade</Link>
         {mutation.error ? <Text style={styles.apiError}>{getErrorMessage(mutation.error)}</Text> : null}
         <Button label="Criar conta" loading={mutation.isPending} onPress={() => void handleSubmit((data) => mutation.mutate(data))()} />
       </View>
@@ -68,4 +100,8 @@ const styles = StyleSheet.create({
   apiError: { ...typography.caption, color: colors.error, backgroundColor: colors.errorSoft, padding: spacing.sm, borderRadius: 8, textAlign: 'center' },
   footer: { ...typography.body, color: colors.textSecondary, textAlign: 'center' },
   link: { color: colors.action, fontFamily: 'Inter_600SemiBold' },
+  consentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  consentText: { ...typography.caption, flex: 1, color: colors.textSecondary, textAlign: 'left' },
+  consentError: { ...typography.caption, color: colors.error, textAlign: 'left', marginLeft: 36 },
+  termsLink: { ...typography.label, color: colors.actionPressed, textAlign: 'center' },
 });

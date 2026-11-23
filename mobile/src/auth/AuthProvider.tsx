@@ -5,6 +5,7 @@ import { queryClient } from '@/api/query-client';
 
 import { sessionStorage } from './session-storage';
 import { getUserIdFromToken } from './jwt';
+import { getCurrentUser } from '@/features/usuarios/service';
 
 type AuthContextValue = {
   token: string | null;
@@ -50,13 +51,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
-    sessionStorage
-      .clearToken()
-      .then(() => {
-        setToken(null);
-        setDisplayName(null);
-        setFullName(null);
-        setEmail(null);
+    Promise.all([
+      sessionStorage.getToken(),
+      sessionStorage.getDisplayName(),
+      sessionStorage.getCurrentIdentity(),
+    ])
+      .then(([storedToken, storedDisplayName, identity]) => {
+        setToken(storedToken);
+        setDisplayName(storedDisplayName);
+        setFullName(identity.fullName);
+        setEmail(identity.email);
       })
       .finally(() => setIsRestoring(false));
   }, []);
@@ -64,6 +68,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     configureApiSession({ token, onUnauthorized: () => void signOut() });
   }, [signOut, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    getCurrentUser()
+      .then(async (user) => {
+        const firstName = user.nome.trim().split(/\s+/)[0] ?? null;
+        setDisplayName(firstName);
+        setFullName(user.nome);
+        setEmail(user.email);
+        if (firstName) await sessionStorage.setDisplayName(firstName);
+        await sessionStorage.setCurrentIdentity({ fullName: user.nome, email: user.email });
+      })
+      .catch(() => undefined);
+  }, [token]);
 
   const userId = useMemo(() => getUserIdFromToken(token), [token]);
   const value = useMemo(

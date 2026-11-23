@@ -7,6 +7,8 @@ const FULL_NAME_KEY = 'nextrip.full-name';
 const EMAIL_KEY = 'nextrip.email';
 let webSessionToken: string | null = null;
 let webDisplayName: string | null = null;
+let webFullName: string | null = null;
+let webEmail: string | null = null;
 const webKnownNames = new Map<string, string>();
 
 function knownNameKey(email: string) {
@@ -39,11 +41,21 @@ export const sessionStorage = {
   },
   setCurrentIdentity: async (identity: { fullName: string | null; email: string }) => {
     if (Platform.OS === 'web') {
+      webFullName = identity.fullName;
+      webEmail = identity.email;
       return;
     }
     const writes = [SecureStore.setItemAsync(EMAIL_KEY, identity.email)];
     if (identity.fullName) writes.push(SecureStore.setItemAsync(FULL_NAME_KEY, identity.fullName));
     await Promise.all(writes);
+  },
+  getCurrentIdentity: async () => {
+    if (Platform.OS === 'web') return { fullName: webFullName, email: webEmail };
+    const [fullName, email] = await Promise.all([
+      SecureStore.getItemAsync(FULL_NAME_KEY),
+      SecureStore.getItemAsync(EMAIL_KEY),
+    ]);
+    return { fullName, email };
   },
   getKnownDisplayName: async (email: string) => {
     const key = knownNameKey(email);
@@ -62,6 +74,8 @@ export const sessionStorage = {
     if (Platform.OS === 'web') {
       webSessionToken = null;
       webDisplayName = null;
+      webFullName = null;
+      webEmail = null;
       return;
     }
     await Promise.all([

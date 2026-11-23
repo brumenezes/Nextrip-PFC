@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, Date, Time, BigInteger
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, Date, Time, BigInteger, DateTime
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geography
@@ -14,6 +14,10 @@ class Usuario(Base):
     nome = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
     senha_hash = Column(String, nullable=False)
+    termos_versao = Column(String(20), nullable=False)
+    termos_aceitos_em = Column(DateTime(timezone=True), nullable=False)
+    privacidade_versao = Column(String(20), nullable=False)
+    privacidade_aceita_em = Column(DateTime(timezone=True), nullable=False)
 
     preferencias = relationship("Preferencias", back_populates="usuario", uselist=False)
     roteiros = relationship("Roteiro", back_populates="usuario")

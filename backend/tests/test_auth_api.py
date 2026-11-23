@@ -72,6 +72,8 @@ def test_cadastro_usuario_sucesso(
             "nome": nome,
             "email": email,
             "senha": senha,
+            "aceita_termos": True,
+            "aceita_privacidade": True,
         },
     )
 
@@ -93,6 +95,8 @@ def test_cadastro_email_duplicado(cliente, banco_simulado):
             "nome": "Ana",
             "email": "teste@example.com",
             "senha": "senha123",
+            "aceita_termos": True,
+            "aceita_privacidade": True,
         },
     )
 

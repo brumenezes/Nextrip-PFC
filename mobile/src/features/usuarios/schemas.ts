@@ -6,6 +6,8 @@ export const registerSchema = z
     email: z.email('Informe um e-mail válido.'),
     senha: z.string().min(8, 'A senha deve ter pelo menos 8 caracteres.'),
     confirmarSenha: z.string().min(1, 'Confirme sua senha.'),
+    aceita_termos: z.boolean().refine(Boolean, 'Aceite os Termos de Uso para continuar.'),
+    aceita_privacidade: z.boolean().refine(Boolean, 'Confirme a leitura do Aviso de Privacidade.'),
   })
   .refine((data) => data.senha === data.confirmarSenha, {
     message: 'As senhas não coincidem.',
@@ -13,6 +15,13 @@ export const registerSchema = z
   });
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+export const updateUserSchema = z.object({
+  nome: z.string().trim().min(2, 'Use pelo menos 2 caracteres.').max(150, 'Use no máximo 150 caracteres.'),
+  email: z.email('Informe um e-mail válido.'),
+});
+
+export type UpdateUserFormData = z.infer<typeof updateUserSchema>;
 
 export const changePasswordSchema = z
   .object({
