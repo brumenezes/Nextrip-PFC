@@ -14,10 +14,13 @@ class UsuarioCreate(BaseModel):
     aceita_termos: Literal[True]
     aceita_privacidade: Literal[True]
 
-    @field_validator("nome")
+    @field_validator("nome", mode="before")
     @classmethod
-    def normalizar_nome(cls, value: str) -> str:
-        return " ".join(value.split())
+    def normalizar_nome(cls, value):
+        if isinstance(value, str):
+            return " ".join(value.split())
+
+        return value
 
     @field_validator("email")
     @classmethod
@@ -46,10 +49,13 @@ class UsuarioUpdate(BaseModel):
     nome: str = Field(min_length=2, max_length=150)
     email: EmailStr
 
-    @field_validator("nome")
+    @field_validator("nome", mode="before")
     @classmethod
-    def normalizar_nome(cls, value: str) -> str:
-        return " ".join(value.split())
+    def normalizar_nome(cls, value):
+        if isinstance(value, str):
+            return " ".join(value.split())
+
+        return value
 
     @field_validator("email")
     @classmethod

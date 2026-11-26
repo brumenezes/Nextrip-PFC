@@ -105,15 +105,15 @@ def test_cadastro_email_duplicado(cliente, banco_simulado):
 
 
 @pytest.mark.parametrize(
-    "nome, email, senha",
+    "nome, email, senha, campo_invalido",
     [
-        ("A", "ana@example.com", "senha123"),
-        ("Ana", "email-invalido", "senha123"),
-        ("Ana", "ana@example.com", "1234567"),
+        ("A", "ana@example.com", "senha123", "nome"),
+        ("Ana", "email-invalido", "senha123", "email"),
+        ("Ana", "ana@example.com", "1234567", "senha"),
     ],
 )
 def test_cadastro_dados_invalidos(
-    cliente, nome, email, senha
+    cliente, banco_simulado, nome, email, senha, campo_invalido
 ):
     resposta = cliente.post(
         "/usuarios",
@@ -121,10 +121,21 @@ def test_cadastro_dados_invalidos(
             "nome": nome,
             "email": email,
             "senha": senha,
+            "aceita_termos": True,
+            "aceita_privacidade": True,
         },
     )
 
     assert resposta.status_code == 422
+
+    erros = resposta.json()["detail"]
+
+    assert {tuple(erro["loc"]) for erro in erros} == {
+        ("body", campo_invalido)
+    }
+
+    banco_simulado.add.assert_not_called()
+    banco_simulado.commit.assert_not_called()
 
 
 def test_login_sucesso(cliente, banco_simulado, monkeypatch):

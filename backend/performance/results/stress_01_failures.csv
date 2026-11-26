@@ -1,0 +1,8 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,POST /roteiros/gerar,CatchResponseError('Geração retornou HTTP 401'),1,2026-11-25T21:17:56Z,2026-11-25T21:17:56Z
+POST,POST /roteiros/gerar,CatchResponseError('Geração retornou HTTP 500'),21,2026-11-25T21:15:52Z,2026-11-25T21:17:25Z
+POST,POST /roteiros/gerar,CatchResponseError('Geração retornou HTTP 0'),36,2026-11-25T21:16:53Z,2026-11-25T21:18:04Z
+GET,GET /roteiros,CatchResponseError('Consulta retornou HTTP 0'),49,2026-11-25T21:15:52Z,2026-11-25T21:17:33Z
+POST,POST /auth/login,CatchResponseError('Falha de comunicação: ReadTimeout'),68,2026-11-25T21:15:53Z,2026-11-25T21:17:33Z
+GET,GET /roteiros,CatchResponseError('Consulta retornou HTTP 401'),1,2026-11-25T21:15:56Z,2026-11-25T21:15:56Z
+GET,GET /pontos-interesse,CatchResponseError('Consulta retornou HTTP 0'),99,2026-11-25T21:15:50Z,2026-11-25T21:17:38Z
