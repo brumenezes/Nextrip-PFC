@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.database import get_db
 from app.core.dependencies import obter_usuario_atual
+from app.services.pocs.otimizacao import RotaInviavelError
 
 
 @pytest.fixture
@@ -510,3 +511,136 @@ def test_geracao_retorna_deslocamentos_por_atividade(
         atividade["tempo_deslocamento_previsto"]
         for atividade in atividades
     )
+
+
+# ==========================================
+# TABELA DE DECISAO TD-02
+# ==========================================
+
+@pytest.mark.parametrize(
+    "cenario, status_esperado, mensagem",
+    [
+        pytest.param(
+            "catalogo_vazio",
+            404,
+            "Nenhum ponto turístico cadastrado",
+            id="TD-02-R1",
+        ),
+        pytest.param(
+            "rota_inviavel",
+            422,
+            "Rota inviável simulada",
+            id="TD-02-R2",
+        ),
+        pytest.param(
+            "sem_atividades",
+            422,
+            "Nenhuma atração atende ao orçamento e tempo disponíveis",
+            id="TD-02-R3",
+        ),
+        pytest.param(
+            "falha_persistencia",
+            500,
+            "Erro ao salvar o roteiro no banco de dados",
+            id="TD-02-R4",
+        ),
+        pytest.param(
+            "sucesso",
+            201,
+            None,
+            id="TD-02-R5",
+        ),
+    ],
+)
+def test_tabela_decisao_geracao_roteiro(
+    ambiente_roteiros,
+    monkeypatch,
+    cenario,
+    status_esperado,
+    mensagem,
+):
+    cliente, banco, usuario = ambiente_roteiros
+
+    preparar_geracao(banco)
+    dados = dados_roteiro_validos()
+
+    if cenario == "catalogo_vazio":
+        banco.scalars.return_value.all.return_value = []
+
+    elif cenario == "rota_inviavel":
+        planejador_simulado = MagicMock(
+            side_effect=RotaInviavelError(
+                "Rota inviável simulada"
+            )
+        )
+
+        monkeypatch.setattr(
+            "app.routers.roteiros.planejar_roteiro",
+            planejador_simulado,
+        )
+
+    elif cenario == "sem_atividades":
+        planejador_simulado = MagicMock(
+            return_value=SimpleNamespace(
+                atividades=[]
+            )
+        )
+
+        monkeypatch.setattr(
+            "app.routers.roteiros.planejar_roteiro",
+            planejador_simulado,
+        )
+
+    elif cenario == "falha_persistencia":
+        banco.commit.side_effect = Exception(
+            "Falha simulada no banco"
+        )
+
+    resposta = cliente.post(
+        "/roteiros/gerar",
+        json=dados,
+    )
+
+    assert resposta.status_code == status_esperado
+
+    if mensagem is not None:
+        assert resposta.json()["detail"] == mensagem
+
+    if cenario in (
+        "catalogo_vazio",
+        "rota_inviavel",
+        "sem_atividades",
+    ):
+        banco.add.assert_not_called()
+        banco.commit.assert_not_called()
+        banco.rollback.assert_not_called()
+
+    elif cenario == "falha_persistencia":
+        banco.commit.assert_called_once()
+        banco.rollback.assert_called_once()
+        banco.refresh.assert_not_called()
+
+    elif cenario == "sucesso":
+        resultado = resposta.json()
+
+        assert resultado["roteiro_id"]
+        assert len(resultado["atividades"]) == 2
+
+        assert (
+            resultado["custo_total_estimado"]
+            <= dados["orcamento_maximo"]
+        )
+
+        assert (
+            resultado["tempo_total_roteiro"]
+            <= dados["tempo_disponivel_minutos"]
+        )
+
+        assert banco.add.call_count == 4
+
+        banco.commit.assert_called_once()
+        banco.refresh.assert_called_once()
+        banco.rollback.assert_not_called()
+
+    if cenario in ("rota_inviavel", "sem_atividades"):
+        planejador_simulado.assert_called_once()
