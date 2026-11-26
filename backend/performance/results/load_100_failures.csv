@@ -1,0 +1,5 @@
+Method,Name,Error,Occurrences,First Seen,Last Seen
+POST,POST /auth/login,CatchResponseError('Login retornou HTTP 0'),87,2026-11-25T21:03:50Z,2026-11-25T21:04:24Z
+POST,POST /roteiros/gerar,CatchResponseError('Geração retornou HTTP 0'),5,2026-11-25T21:04:21Z,2026-11-25T21:04:21Z
+GET,GET /roteiros,CatchResponseError('Consulta retornou HTTP 0'),3,2026-11-25T21:03:51Z,2026-11-25T21:04:24Z
+GET,GET /pontos-interesse,CatchResponseError('Consulta retornou HTTP 0'),11,2026-11-25T21:03:51Z,2026-11-25T21:04:24Z

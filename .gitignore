@@ -38,3 +38,6 @@ htmlcov/
 # Cache do Python
 __pycache__/
 *.pyc
+
+# Resultados de novas execucoes dos testes de desempenho
+/backend/performance/reproduction/
